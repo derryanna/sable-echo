@@ -528,7 +528,7 @@ switch.
 
 ### 17.1 Settings tab looks like Sable Trackers
 
-On her phone the Echo settings block is several times taller than Sable's:
+On a phone the Echo settings block is several times taller than Sable's:
 range inputs render as tall blue bars, checkboxes as huge circles, every
 control on its own full-width line. Make `src/ui/settings.js` + the settings
 rules in `style.css` match the Sable Trackers settings block in structure and
@@ -572,7 +572,7 @@ of Sable's settings is read.
 
 ### 18.1 Density and a scale control
 
-On her phone everything is still larger than Sable Trackers: drawer selects
+On a phone everything is still larger than Sable Trackers: drawer selects
 and inputs are ~70 px tall (host `select`/`input` padding and font leak in),
 rows are airy, hints are long. Changes:
 - `visual.scale` 0.7–1.2 (default 1, step 0.05), shown as «Масштаб» in the ⚙
@@ -609,7 +609,7 @@ instead of staying on «думаю…».
 
 ### 19.1 Sliders that no theme can inflate
 
-On her phone (SillyTavern 1.19 + a custom theme) range inputs in the settings
+On a phone (SillyTavern 1.19 + a custom theme) range inputs in the settings
 tab still render as tall native bars despite the compact class. Replace every
 slider (settings tab and the ⚙ sheet) with a themed control: a `div` track
 (4 px, rounded, filled part in the accent colour via `--st-echo-fill`) and a
