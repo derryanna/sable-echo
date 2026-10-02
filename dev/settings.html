@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Sable Echo settings preview</title>
+<!-- SillyTavern's theme first, the extension after it, as in the extensions tab. -->
+<link rel="stylesheet" href="st-theme.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+body { margin: 0; padding: 12px; background: #131118; font-family: system-ui, sans-serif; line-height: 1.45; }
+#extensions_settings2 { max-width: 100%; margin: auto; padding: 8px; border: 1px solid #ffffff20; border-radius: 12px; background: #1a1720; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="extensions_settings2"></div>
+<script type="module">
+import { mountSettings } from '../src/ui/settings.js';
+import { createFakeRuntime } from '../test/fakes/runtime.mjs';
+const query = new URLSearchParams(location.search);
+const fixture = await (await fetch('../fixtures/snapshot.json')).json();
+if (query.has('column')) document.querySelector('#extensions_settings2').style.width = `${Number(query.get('column'))}px`;
+if (query.get('lang') === 'en') fixture.language = 'en';
+const runtime = createFakeRuntime(fixture);
+const ui = mountSettings(runtime);
+document.querySelector('.inline-drawer-header').click();
+globalThis.echoPreview = { runtime, ui };
+document.title = 'ready';
+</script>
+</body>
+</html>

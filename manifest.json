@@ -1,0 +1,13 @@
+{
+    "display_name": "Sable Echo",
+    "loading_order": 100,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "derryanna",
+    "version": "0.5.0",
+    "homePage": "https://github.com/derryanna/sable-echo",
+    "auto_update": true,
+    "minimum_client_version": "1.18.0"
+}

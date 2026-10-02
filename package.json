@@ -1,0 +1,16 @@
+{
+  "name": "sable-echo",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "SillyTavern extension: hands-on ban list for repeated phrases and rhetorical patterns, with Jev sensors",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

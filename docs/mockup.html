@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0e0e12">
+<title>Эхо — макет панели</title>
+<style>
+/* View settings arrive as CSS variables on the panel: --fs text size, --chip-h/--chip-px chip size, --pw panel width. */
+:root{--ink:255,255,255;--acc:#f5f4ee;--g:#93dca5;--a:#e9c16f;--r:#f29d9d;--line:rgba(255,255,255,.07);
+  --fs:13px;--chip-h:36px;--chip-px:10px;--pw:412px;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"Roboto Mono",monospace}
+*,*::before,*::after{box-sizing:border-box}
+html{background:#0e0c12}
+body{margin:0;min-height:100vh;color:#eeeae7;font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  background:#0e0c12 linear-gradient(160deg,#30243c 0%,#16121b 55%,#221a16 100%) fixed;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid rgba(245,244,238,.55);outline-offset:2px}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fade{animation:fade 120ms ease-out}
+
+/* Panel: one phone-width glass column, centred over a dark backdrop on desktop. */
+.panel{width:var(--pw);max-width:100%;min-height:100vh;margin:0 auto;display:flex;flex-direction:column;gap:10px;
+  padding:0 8px max(12px,env(safe-area-inset-bottom));background:rgba(14,14,18,.93);font-size:var(--fs);
+  backdrop-filter:blur(14px) saturate(120%);-webkit-backdrop-filter:blur(14px) saturate(120%);
+  border-left:1px solid rgba(var(--ink),.08);border-right:1px solid rgba(var(--ink),.08);box-shadow:0 0 48px rgba(0,0,0,.5)}
+@media (max-width:420px){.panel{border:0;box-shadow:none}}
+
+/* Header: title, status line, three glass buttons. Sticky so the status stays visible. */
+.hd{position:sticky;top:0;z-index:5;margin:0 -8px;padding:max(10px,env(safe-area-inset-top)) 10px 8px 16px;
+  background:rgba(14,14,18,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.hd-row{display:flex;align-items:center;gap:6px}
+.title{flex:1;min-width:0;display:flex;align-items:center;gap:9px;font-size:calc(var(--fs) + 4px);font-weight:700;letter-spacing:.01em}
+.status{margin:1px 0 0 29px;font-size:calc(var(--fs) - 1.5px);opacity:.6;font-variant-numeric:tabular-nums}
+.ico{display:inline-flex;flex:none;width:16px;height:16px}
+.ico svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ico.logo{width:20px;height:20px;opacity:.9}
+.ib{width:36px;height:36px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;
+  background:rgba(var(--ink),.05);border:1px solid rgba(var(--ink),.12);transition:background-color 120ms}
+.ib:active{background:rgba(var(--ink),.14)}
+.ib[aria-expanded="true"]{background:var(--acc);color:#141418}
+.ib.ghost{background:transparent;border-color:transparent;opacity:.7}
+.spin .ico svg{animation:spin .8s linear infinite}
+@media (hover:hover){.ib:hover{background:rgba(var(--ink),.1)}.btn:hover:not(:disabled){border-color:rgba(var(--ink),.3)}}
+
+/* «Вид» popover under the ⚙ button. */
+.pop{position:absolute;top:calc(100% + 6px);right:10px;z-index:6;width:min(300px,calc(100vw - 24px));padding:12px 14px;
+  border-radius:16px;background:#18181e;border:1px solid rgba(var(--ink),.16);box-shadow:0 14px 36px rgba(0,0,0,.55)}
+.pop-h{margin-bottom:4px;font-size:calc(var(--fs) + 1px);font-weight:700}
+.pop-r{padding:6px 0 2px}
+.pop-l{display:flex;justify-content:space-between;gap:8px;font-size:calc(var(--fs) - .5px)}
+.pop-l output{opacity:.6;font-variant-numeric:tabular-nums}
+.pop input[type=range]{display:block;width:100%;height:36px;margin:0;accent-color:#f5f4ee}
+.pop-c{font-size:calc(var(--fs) - 2px);opacity:.5}
+.pop-note{margin-top:8px;padding-top:8px;border-top:1px solid rgba(var(--ink),.08);font-size:calc(var(--fs) - 1.5px);opacity:.62}
+.seg{display:flex;gap:4px;margin-top:6px;padding:3px;border-radius:12px;background:rgba(var(--ink),.06)}
+.seg button{flex:1;min-height:36px;border-radius:9px;font-size:calc(var(--fs) - 1px)}
+.seg button[aria-pressed="true"]{background:var(--acc);color:#141418;font-weight:600}
+.seg.tiny{flex:none;margin:0;padding:2px;gap:2px}
+.seg.tiny button{flex:none;min-width:38px;font-size:calc(var(--fs) - 2.5px);font-weight:600;letter-spacing:.04em}
+
+/* Sensor strip and the expanded sensor card. */
+.sensors{display:flex;gap:6px}
+.sens{flex:1 1 0;min-width:0;min-height:42px;display:flex;align-items:center;gap:7px;padding:0 10px;border-radius:14px;
+  border:1px solid rgba(var(--ink),.12);background:rgba(var(--ink),.04);text-align:left;transition:background-color 120ms,border-color 120ms}
+.sens[aria-expanded="true"]{background:rgba(var(--ink),.1);border-color:rgba(var(--ink),.32)}
+.sens-n{flex:1;min-width:0;font-size:calc(var(--fs) - 1px);opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sens-v{font-weight:700;font-variant-numeric:tabular-nums}
+.dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--c)}
+.sd{padding:10px 14px 12px 16px}
+.sd-h{display:flex;align-items:center;gap:8px;font-size:calc(var(--fs) + .5px)}
+.sd-v{margin-left:auto;font-weight:700;font-size:calc(var(--fs) + 3px);font-variant-numeric:tabular-nums}
+.sd-v small{font-size:calc(var(--fs) - 2px);font-weight:400;opacity:.5}
+.spark{margin:8px 0 4px}
+.spark svg{display:block;width:100%;height:auto}
+.spark .grid{stroke:rgba(255,255,255,.09);stroke-dasharray:3 4}
+.sd-note,.hint,.card-sub,.tok,.rx-hint{opacity:.55;font-size:calc(var(--fs) - 1.5px)}
+
+/* Cards: rounded glass, thin border, left accent bar. */
+.card{position:relative;border:1px solid rgba(var(--ink),.13);border-radius:18px;
+  background:linear-gradient(180deg,rgba(var(--ink),.05),rgba(var(--ink),.02));
+  box-shadow:0 6px 18px rgba(0,0,0,.16),inset 0 1px 0 rgba(var(--ink),.04)}
+.card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;
+  background:var(--bar,var(--acc));pointer-events:none;transition:opacity 120ms}
+.card.off::before{opacity:.35}
+.card-h{display:flex;align-items:center;gap:8px;min-height:46px;padding:4px 8px 4px 16px}
+.card-t{flex:1;min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-size:calc(var(--fs) + 1px);font-weight:700}
+.card-sub{font-weight:400}
+.pill{padding:1px 7px;border-radius:999px;border:1px solid rgba(var(--ink),.2);font-size:calc(var(--fs) - 2px);font-weight:600;font-variant-numeric:tabular-nums}
+.card-b{border-top:1px solid var(--line);padding:8px 12px 6px 16px}
+.empty{padding:6px 0 10px;opacity:.5}
+.hint{padding:2px 0}
+.k{font-size:calc(var(--fs) - 3px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.55}
+
+/* Candidates: word chips, count badge, live result, three actions. */
+.cand{padding:10px 0 12px}
+.cand+.cand,.pat+.pat{border-top:1px solid rgba(var(--ink),.06)}
+.cand-top{display:flex;align-items:flex-start;gap:8px}
+.words{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:5px}
+.w{min-height:var(--chip-h);padding:0 var(--chip-px);border-radius:9px;border:1px solid rgba(var(--ink),.16);background:rgba(var(--ink),.07);
+  font-size:calc(var(--fs) + .5px);line-height:1.2;transition:opacity 120ms,background-color 120ms}
+.w.cut{text-decoration:line-through;text-decoration-thickness:1.5px;opacity:.38;background:transparent;border-style:dashed}
+.cnt{flex:none;width:52px;display:flex;flex-direction:column;align-items:center;gap:1px}
+.badge{min-width:48px;height:36px;padding:0 8px;border-radius:999px;border:1px solid rgba(var(--ink),.2);
+  background:rgba(var(--ink),.06);font-weight:700;font-variant-numeric:tabular-nums;transition:background-color 120ms}
+.badge[aria-expanded="true"]{background:var(--acc);color:#141418;border-color:rgba(var(--ink),.5)}
+.of{opacity:.55;font-size:calc(var(--fs) - 2.5px)}
+.result{display:flex;align-items:center;gap:7px;margin-top:4px;min-height:36px}
+.arrow{opacity:.45}
+.res{flex:1;min-width:0;font-weight:600}
+.res.none{font-weight:400;font-style:italic;opacity:.45}
+.editbox,.row{flex:1;min-width:0;display:flex;align-items:center;gap:6px}
+.edit-in,.alt-in{flex:1;min-width:0;height:36px;padding:0 10px;border-radius:10px;border:1px solid rgba(var(--ink),.32);
+  background:rgba(0,0,0,.3);color:inherit;font:inherit;font-size:calc(var(--fs) + 1px)}
+.exs{margin:2px 0 4px;padding:8px 10px;border-radius:12px;background:rgba(var(--ink),.05);font-size:calc(var(--fs) - .5px);line-height:1.5}
+.exs p{margin:0;opacity:.88}
+.exs p+p{margin-top:6px}
+mark{color:inherit;background:rgba(233,193,111,.24);border-radius:4px;padding:0 2px}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.btn{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid rgba(var(--ink),.14);font-size:calc(var(--fs) - .5px);font-weight:600;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background-color 120ms,border-color 120ms}
+.btn:active:not(:disabled){background:rgba(var(--ink),.1)}
+.btn.ban{color:#f7caca;background:rgba(242,157,157,.13);border-color:rgba(242,157,157,.42)}
+.btn:disabled{opacity:.35}
+.btn.sm{font-weight:500;flex:none}
+.btn.sm .ico{width:14px;height:14px}
+.grp{margin-top:6px;padding-top:12px;border-top:1px solid rgba(var(--ink),.06);font-size:calc(var(--fs) - 2.5px);font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;opacity:.55}
+.grp+.cand{border-top:0;padding-top:6px}
+
+/* Folded lines: «Нарочно (N)», «Скрыто (N)», «Показать блок». */
+.fold{border-top:1px solid rgba(var(--ink),.06)}
+.fold-row{display:flex;align-items:center;gap:8px}
+.fold-h{width:100%;min-height:40px;display:flex;align-items:center;gap:8px;text-align:left;font-size:calc(var(--fs) - .5px);opacity:.72}
+.fold-h::after{content:'';width:6px;height:6px;margin:0 6px 0 auto;border-right:1.5px solid currentColor;
+  border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.7}
+.fold-h[aria-expanded="true"]::after{transform:translateY(1px) rotate(-135deg)}
+.fold-b{padding:0 0 8px}
+.fold-i{display:flex;align-items:center;gap:8px;min-height:40px}
+.fold-i>span{flex:1;min-width:0;opacity:.78}
+
+/* Patterns. */
+.pat{padding:10px 0 12px}
+.pat-h{display:flex;align-items:baseline;gap:8px}
+.pat-n{flex:1;min-width:0;font-weight:600}
+.pat-k{flex:none;font-size:calc(var(--fs) - 1px);opacity:.7;font-variant-numeric:tabular-nums}
+.bar{height:4px;margin:7px 0 6px;border-radius:999px;background:rgba(var(--ink),.09);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:inherit}
+.pat-ex{font-style:italic;font-size:calc(var(--fs) - .5px);opacity:.62}
+.pat .acts .last{grid-column:3}
+
+/* Ban list: solid chips = phrases, dashed amber chips = patterns. Tap a chip for its editor. */
+.tog{min-height:36px;padding:0 12px;border-radius:999px;border:1px dashed rgba(var(--ink),.3);font-size:calc(var(--fs) - 1.5px);
+  font-weight:600;letter-spacing:.02em;transition:background-color 120ms}
+.tog[aria-pressed="true"]{color:#141418;background:var(--acc);border:1px solid rgba(var(--ink),.5)}
+.bchips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 10px}
+.bchip{display:inline-flex;align-items:center;max-width:100%;min-height:var(--chip-h);border-radius:999px;
+  border:1px solid rgba(var(--ink),.32);background:rgba(var(--ink),.07);font-size:calc(var(--fs) - .5px);transition:background-color 120ms}
+.bchip.p{border-style:dashed;border-color:rgba(233,193,111,.65);background:rgba(233,193,111,.07)}
+.bchip.sel{border-color:var(--acc);background:rgba(var(--ink),.15)}
+.bt{min-width:0;min-height:calc(var(--chip-h) - 2px);display:inline-flex;align-items:center;gap:5px;
+  padding:0 2px 0 calc(var(--chip-px) + 2px);border-radius:999px 0 0 999px;text-align:left}
+.bt>.t{min-width:0;padding:4px 0;overflow-wrap:anywhere}
+.bchip .tag{font-size:calc(var(--fs) - 3px);letter-spacing:.05em;text-transform:uppercase;opacity:.55}
+.bchip .g{color:var(--a);font-size:calc(var(--fs) - 2px)}
+.bchip .am{color:var(--g);font-weight:700}
+.bx{width:calc(var(--chip-h) - 2px);height:calc(var(--chip-h) - 2px);flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;opacity:.65}
+.bx .ico{width:13px;height:13px}
+.off .bchips{opacity:.5}
+.bed{margin:0 0 10px;padding:10px 10px 12px;border-radius:14px;border:1px solid rgba(var(--ink),.16);background:rgba(var(--ink),.04)}
+.bed-t{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;font-weight:600}
+.sgs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.sg{min-height:var(--chip-h);padding:0 var(--chip-px);border-radius:999px;border:1px dashed rgba(147,220,165,.5);
+  background:rgba(147,220,165,.07);font-size:calc(var(--fs) - .5px);text-align:left}
+.saved{margin-top:8px;color:var(--g);font-size:calc(var(--fs) - .5px)}
+.rx-box{margin-top:10px;padding-top:10px;border-top:1px solid rgba(var(--ink),.08)}
+.rx{display:block;margin:6px 0 4px;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.3);color:#ecdcb4;
+  font:calc(var(--fs) - 1px)/1.5 var(--mono);overflow-wrap:anywhere}
+.rx-btn{margin-top:8px}
+.block{margin:0;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.3);border:1px solid rgba(var(--ink),.08);
+  font:calc(var(--fs) - 1px)/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.off .block{opacity:.55}
+.tok{margin-top:6px}
+.foot{margin-top:auto;padding:6px 0 2px;text-align:center;font-size:calc(var(--fs) - 2.5px);opacity:.38}
+.toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));z-index:20;transform:translateX(-50%);max-width:calc(100vw - 32px);
+  padding:10px 16px;border-radius:12px;background:rgba(30,30,36,.97);border:1px solid rgba(var(--ink),.18);
+  box-shadow:0 10px 28px rgba(0,0,0,.5);font-size:13px;opacity:0;pointer-events:none;transition:opacity 120ms}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<main id="app" class="panel" aria-label="Эхо"></main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+// Design mockup only: synthetic data, in-page state, nothing is saved or sent anywhere.
+const REPLIES = 60;
+const PW_MAX = 960;  // the last stop of the width slider means 100%
+const CHIP = { compact: [28, 7], normal: [36, 10], large: [44, 14] };
+const VARY = 'просто варьируй';
+
+const ICON = {
+  logo: '<circle cx="5" cy="12" r="1.8" fill="currentColor" stroke="none"/><path d="M9 8.5a5 5 0 0 1 0 7"/>' +
+        '<path d="M12.5 5.5a9.5 9.5 0 0 1 0 13" opacity=".65"/><path d="M16 3a13 13 0 0 1 0 18" opacity=".35"/>',
+  refresh: '<path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.5"/>' +
+        '<path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  pen: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
+  ok: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+};
+
+// Sensors: the last of 12 points is the current value (scale 0..3).
+const SENS = [
+  { id: 'rep', name: 'Повторы', lv: 'r', series: [1.2, 1.4, 1.3, 1.7, 1.6, 1.9, 2.0, 1.8, 2.2, 2.4, 2.1, 2.3] },
+  { id: 'me', name: 'За меня', lv: 'g', series: [0.6, 0.4, 0.5, 0.2, 0.3, 0.1, 0.2, 0.0, 0.1, 0.2, 0.1, 0.1] },
+  { id: 'mov', name: 'Движение', lv: 'a', series: [2.6, 2.4, 2.5, 2.1, 2.2, 1.9, 2.0, 1.7, 1.9, 1.6, 1.8, 1.8] },
+];
+
+// Mined candidates: [kind, phrase, count, two example sentences, three fake suggestions]. Synthetic roleplay slop.
+const CANDS = [
+  ['phrase', 'уголки губ дрогнули в подобии улыбки', 9,
+    ['Он отвёл глаза, и уголки губ дрогнули в подобии улыбки.', 'Уголки губ дрогнули в подобии улыбки, но взгляд остался холодным.'],
+    ['он едва заметно усмехнулся', 'улыбка вышла кривой', VARY]],
+  ['phrase', 'тишина повисла в воздухе', 7,
+    ['Тишина повисла в воздухе, тяжёлая и вязкая.', 'Когда дверь закрылась, тишина повисла в воздухе.'],
+    ['никто не ответил', 'стало слышно, как тикают часы', VARY]],
+  ['phrase', 'что-то неуловимое мелькнуло в его взгляде', 6,
+    ['Что-то неуловимое мелькнуло в его взгляде и тут же погасло.', 'Он промолчал, но что-то неуловимое мелькнуло в его взгляде.'],
+    ['он отвёл глаза', 'взгляд на секунду потяжелел', VARY]],
+  ['phrase', 'сердце пропустило удар', 5,
+    ['Сердце пропустило удар, когда прозвучало её имя.', 'От этих слов сердце пропустило удар.'],
+    ['дыхание сбилось', 'пальцы сжались сами собой', VARY]],
+  ['phrase', 'на мгновение замер', 5,
+    ['Он на мгновение замер у порога.', 'Услышав шаги, он на мгновение замер и прислушался.'],
+    ['остановился', 'запнулся на полушаге', VARY]],
+  ['phrase', 'голос звучал тише обычного', 4,
+    ['Его голос звучал тише обычного, почти шёпотом.', '— Останься, — голос звучал тише обычного.'],
+    ['сказал почти шёпотом', 'понизил голос', VARY]],
+  ['opener', 'Он медленно поднял взгляд…', 6,
+    ['Он медленно поднял взгляд от бумаг.', 'Он медленно поднял взгляд на дверь.'],
+    ['начни с реплики', 'начни с действия другого персонажа', VARY]],
+  ['opener', 'Тишина.', 4,
+    ['Тишина. Только дождь стучал по подоконнику.', 'Тишина. Где-то внизу хлопнула дверь.'],
+    ['начни со звука или движения', 'начни с реплики', VARY]],
+];
+
+// Jev patterns: [name, hits in the last 10 replies, example, RU wording, EN wording, three fake suggestions].
+const PATS = [
+  ['Закрывающий афоризм', 6, 'И в этом молчании было больше правды, чем в любых словах.',
+    'закрывающий афоризм в конце ответа', 'closing aphorism as the last line',
+    ['заканчивай действием или репликой', 'обрывай на конкретной детали', VARY]],
+  ['Не X, а Y', 4, 'Это был не страх, а что-то куда более древнее.',
+    'конструкция «не X, а Y»', '«not X, but Y» antithesis',
+    ['называй прямо, без противопоставления', 'одно точное слово вместо двух', VARY]],
+  ['Фильтр-глаголы (заметила, почувствовал)', 7, 'Она заметила, как дрогнули его пальцы.',
+    'фильтр-глаголы (заметила, почувствовал) вместо прямого действия', 'filter verbs (noticed, felt) instead of direct action',
+    ['показывай само действие, без «заметила»', 'пиши то, что видно, напрямую', VARY]],
+  ['Отрицательное действие (не пошевелился)', 3, 'Он не пошевелился и ничего не ответил.',
+    'описание того, чего персонаж не сделал', 'narrating what a character did not do',
+    ['пиши, что персонаж делает', 'замени паузой с деталью', VARY]],
+];
+
+const S = {
+  sens: null, inject: true, block: false, lang: 'en', busy: false, focus: null,
+  folds: {}, fresh: new Set(), ban: [],
+  editBan: null, altDraft: '', sugg: false,
+  view: { open: false, fs: 13, chips: 'normal', pw: 412 },
+  cands: CANDS.map(([type, text, count, ex, sugg], i) => {
+    const words = text.split(' ');
+    return { id: 'c' + i, type, words, cut: words.map(() => false), count, ex, sugg, alt: '',
+      status: 'list', open: false, edit: false, draft: '' };
+  }),
+  pats: PATS.map(([name, hits, ex, prompt, en, sugg], i) =>
+    ({ id: 'p' + i, type: 'pattern', name, hits, ex, prompt, en, sugg, alt: '', status: 'list' })),
+};
+
+const get = id => (id[0] === 'c' ? S.cands : S.pats).find(x => x.id === id);
+const last = s => s.series[s.series.length - 1];
+const fade = key => (S.fresh.has(key) ? ' fade' : '');
+const short = name => name.replace(/\s*\(.*\)$/, '');
+const bare = text => text.replace(/[….,!?]+$/, '');
+const pwLabel = v => (v >= PW_MAX ? '100%' : v + ' px');
+
+/** Trimmed phrase: cut words at the ends drop, a cut run inside becomes « … ». */
+function phrase(c) {
+  const out = [];
+  let gap = false;
+  c.words.forEach((word, i) => {
+    if (c.cut[i]) { if (out.length) gap = true; return; }
+    if (gap) { out.push('…'); gap = false; }
+    out.push(word);
+  });
+  return out.join(' ');
+}
+
+/** Regex from the trimmed phrase: each word cut to 5 letters + [а-яё]* (flag i; \w never matches Cyrillic), a «…» gap becomes [^.!?]{0,40}. */
+function regexFor(c) {
+  return phrase(c).split(' ').map(token => {
+    if (token === '…') return '[^.!?]{0,40}';
+    const word = token.toLowerCase().replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+    if (!word) return '';
+    const letters = Array.from(word);
+    const stem = letters.length <= 5 ? word : letters.slice(0, 5).join('');
+    return stem.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[а-яё]*';
+  }).filter(Boolean).join(' ');
+}
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'value') el.value = v;
+    else el.setAttribute(k, v === true ? '' : String(v));
+  }
+  for (const kid of kids.flat(Infinity)) {
+    if (kid == null || kid === false) continue;
+    el.append(kid instanceof Node ? kid : String(kid));
+  }
+  return el;
+}
+
+function icon(name, cls) {
+  const span = document.createElement('span');
+  span.className = 'ico' + (cls ? ' ' + cls : '');
+  span.setAttribute('aria-hidden', 'true');
+  span.innerHTML = '<svg viewBox="0 0 24 24">' + ICON[name] + '</svg>'; // static markup only
+  return span;
+}
+
+/** Example sentence with each kept fragment of the phrase highlighted, in order. */
+function marked(sentence, segments) {
+  const low = sentence.toLowerCase(), out = [];
+  let pos = 0;
+  for (const segment of segments) {
+    const needle = bare(segment).toLowerCase();
+    if (!needle) continue;
+    const at = low.indexOf(needle, pos);
+    if (at < 0) continue;
+    out.push(sentence.slice(pos, at), h('mark', null, sentence.slice(at, at + needle.length)));
+    pos = at + needle.length;
+  }
+  out.push(sentence.slice(pos));
+  return out;
+}
+
+/** The injected block. Entries with an alternative go to «Instead of …» lines instead of the plain lists. */
+function blockText(lang) {
+  const en = lang === 'en', items = S.ban.map(get), q = s => '«' + s + '»', parts = [];
+  const dot = s => (/[.!?…]$/.test(s) ? s : s + '.');
+  const of = (type, withAlt) => items.filter(it => it.type === type && !!it.alt === withAlt);
+  const label = it => it.type === 'pattern' ? (en ? it.en : it.prompt) : q(it.type === 'opener' ? bare(phrase(it)) : phrase(it));
+  const instead = it => en ? `Instead of ${label(it)}: ${dot(it.alt)}`
+    : `Вместо ${it.type === 'pattern' ? 'приёма ' + q(it.prompt) : label(it)}: ${dot(it.alt)}`;
+  const list = (title, type, sep) => { if (of(type, false).length) parts.push(title + of(type, false).map(label).join(sep) + '.'); };
+  list(en ? 'Phrases (verbatim, any inflection): ' : 'Фразы: ', 'phrase', ', ');
+  list(en ? 'Never open a reply with: ' : 'Зачины: ', 'opener', ', ');
+  parts.push(...of('phrase', true).map(instead), ...of('opener', true).map(instead));
+  list(en ? 'Patterns: ' : 'Приёмы: ', 'pattern', '; ');
+  parts.push(...of('pattern', true).map(instead));
+  return parts.length ? (en ? '[Avoid] ' : '[Избегай] ') + parts.join(' ') : '';
+}
+
+function applyView() {
+  const v = S.view, style = document.getElementById('app').style, [chipH, chipPx] = CHIP[v.chips];
+  style.setProperty('--fs', v.fs + 'px');
+  style.setProperty('--chip-h', chipH + 'px');
+  style.setProperty('--chip-px', chipPx + 'px');
+  style.setProperty('--pw', v.pw >= PW_MAX ? '100%' : v.pw + 'px');
+}
+
+let toastTimer = 0;
+function toast(message) {
+  const el = document.getElementById('toast');
+  el.textContent = message;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+/* ---------- actions ---------- */
+const A = {
+  sens(d) { S.sens = S.sens === d.k ? null : d.k; S.fresh.add('sens'); },
+  cut(d) { const c = get(d.id); c.cut[+d.i] = !c.cut[+d.i]; },
+  ex(d) { const c = get(d.id); c.open = !c.open; if (c.open) S.fresh.add('ex' + c.id); },
+  edit(d) { const c = get(d.id); c.edit = true; c.draft = phrase(c); S.focus = c.id; },
+  ok(d) {
+    const c = get(d.id), words = c.draft.trim().split(/\s+/).filter(Boolean);
+    if (words.length) { c.words = words; c.cut = words.map(() => false); }
+    c.edit = false;
+  },
+  cancel(d) { get(d.id).edit = false; },
+  ban(d) {
+    const it = get(d.id);
+    if (it.type !== 'pattern' && !phrase(it)) return;
+    it.status = 'ban'; it.edit = false; it.open = false;
+    S.ban.push(it.id); S.fresh.add('chip' + it.id);
+  },
+  intent(d) { const c = get(d.id); c.status = 'intent'; c.edit = false; },
+  hide(d) { const it = get(d.id); it.status = 'hidden'; it.edit = false; },
+  restore(d) { get(d.id).status = 'list'; S.fresh.add('row' + d.id); },
+  unban(d) {
+    get(d.id).status = 'list';
+    S.ban = S.ban.filter(k => k !== d.id);
+    if (S.editBan === d.id) S.editBan = null;
+    S.fresh.add('row' + d.id);
+  },
+  fold(d) { S.folds[d.k] = !S.folds[d.k]; if (S.folds[d.k]) S.fresh.add('fold' + d.k); },
+  inject() { S.inject = !S.inject; },
+  block() { S.block = !S.block; if (S.block) S.fresh.add('block'); },
+  lang(d) { S.lang = d.k; },
+  // Ban chip editor: alternative, fake suggestions, generated regex.
+  bedit(d) {
+    if (S.editBan === d.id) { S.editBan = null; return; }
+    S.editBan = d.id; S.altDraft = get(d.id).alt; S.sugg = false; S.fresh.add('bed');
+  },
+  suggest() { S.sugg = true; S.fresh.add('sugg'); },
+  pick(d) { S.altDraft = get(S.editBan).sugg[+d.i]; },
+  altok() { get(S.editBan).alt = S.altDraft.trim(); S.editBan = null; },
+  altclose() { S.editBan = null; },
+  rx() { toast('макет: регекс не сохранён'); },
+  view() { S.view.open = !S.view.open; },
+  chips(d) { S.view.chips = d.k; applyView(); },
+  // A new scan brings back what was hidden «for now»; bans and «Нарочно» stay.
+  rescan() {
+    if (S.busy) return;
+    S.busy = true;
+    setTimeout(() => {
+      for (const it of [...S.cands, ...S.pats]) if (it.status === 'hidden') { it.status = 'list'; S.fresh.add('row' + it.id); }
+      S.busy = false;
+      render();
+    }, 700);
+  },
+  noop() {},
+};
+
+/* ---------- view ---------- */
+function viewPopover() {
+  const v = S.view;
+  return h('div', { class: 'pop fade', role: 'dialog', 'aria-label': 'Вид' },
+    h('div', { class: 'pop-h' }, 'Вид'),
+    h('div', { class: 'pop-r' },
+      h('label', { class: 'pop-l', for: 'v-fs-in' }, 'Текст', h('output', { id: 'v-fs' }, v.fs + ' px')),
+      h('input', { type: 'range', id: 'v-fs-in', 'data-view': 'fs', min: 12, max: 18, step: 1, value: v.fs })),
+    h('div', { class: 'pop-r' },
+      h('div', { class: 'pop-l' }, 'Чипы'),
+      h('div', { class: 'seg', role: 'group', 'aria-label': 'размер чипов' },
+        [['compact', 'компакт'], ['normal', 'обычно'], ['large', 'крупно']].map(([k, label]) =>
+          h('button', { 'data-act': 'chips', 'data-k': k, 'aria-pressed': String(v.chips === k) }, label)))),
+    h('div', { class: 'pop-r' },
+      h('label', { class: 'pop-l', for: 'v-pw-in' }, 'Ширина', h('output', { id: 'v-pw' }, pwLabel(v.pw))),
+      h('input', { type: 'range', id: 'v-pw-in', 'data-view': 'pw', min: 360, max: PW_MAX, step: 4, value: v.pw }),
+      h('div', { class: 'pop-c' }, 'на телефоне — по ширине экрана')),
+    h('div', { class: 'pop-note' }, h('b', null, 'Как в Sable'), ' · остальные крутилки (цвета, стекло, фон) те же, что у Sable Trackers'));
+}
+
+function header() {
+  return h('header', { class: 'hd' },
+    h('div', { class: 'hd-row' },
+      h('div', { class: 'title' }, icon('logo', 'logo'), 'Эхо'),
+      h('button', { class: 'ib' + (S.busy ? ' spin' : ''), 'data-act': 'rescan', 'aria-label': 'пересчитать', title: 'пересчитать' }, icon('refresh')),
+      h('button', { class: 'ib', 'data-act': 'view', 'aria-expanded': String(S.view.open), 'aria-label': 'вид', title: 'вид' }, icon('gear')),
+      h('button', { class: 'ib', 'data-act': 'noop', 'aria-label': 'закрыть', title: 'закрыть' }, icon('x'))),
+    h('div', { class: 'status' }, S.busy ? 'считаю…' : `${REPLIES} ответов · Jev вкл · после #214`),
+    S.view.open && viewPopover());
+}
+
+function sensors() {
+  return h('div', { class: 'sensors' }, SENS.map(s =>
+    h('button', { class: 'sens', 'data-act': 'sens', 'data-k': s.id, 'aria-expanded': String(S.sens === s.id) },
+      h('span', { class: 'dot', style: `--c:var(--${s.lv})` }),
+      h('span', { class: 'sens-n' }, s.name),
+      h('span', { class: 'sens-v' }, last(s).toFixed(1)))));
+}
+
+function spark(s) {
+  const W = 360, H = 64, P = 6, color = `var(--${s.lv})`;
+  const x = i => (P + i * (W - 2 * P) / (s.series.length - 1)).toFixed(1);
+  const y = v => (H - P - (v / 3) * (H - 2 * P)).toFixed(1);
+  const pts = s.series.map((v, i) => x(i) + ',' + y(v)).join(' ');
+  const wrap = h('div', { class: 'spark' });
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="последние 12 значений">` +
+    [1, 2].map(v => `<line class="grid" x1="${P}" x2="${W - P}" y1="${y(v)}" y2="${y(v)}"/>`).join('') +
+    `<polygon points="${x(0)},${H - P} ${pts} ${x(11)},${H - P}" style="fill:${color};opacity:.12"/>` +
+    `<polyline points="${pts}" style="fill:none;stroke:${color};stroke-width:2;stroke-linejoin:round;stroke-linecap:round"/>` +
+    `<circle cx="${x(11)}" cy="${y(last(s))}" r="3.5" style="fill:${color}"/></svg>`; // numbers only
+  return wrap;
+}
+
+function sensorCard() {
+  const s = SENS.find(x => x.id === S.sens);
+  if (!s) return null;
+  return h('section', { class: 'card sd' + fade('sens'), style: `--bar:var(--${s.lv})` },
+    h('div', { class: 'sd-h' }, h('span', { class: 'dot', style: `--c:var(--${s.lv})` }), h('b', null, s.name),
+      h('span', { class: 'sd-v' }, last(s).toFixed(1), h('small', null, ' / 3'))),
+    spark(s),
+    h('div', { class: 'sd-note' }, 'среднее по последним 8 ответам'));
+}
+
+function cardHead(title, count, sub, right) {
+  return h('div', { class: 'card-h' },
+    h('div', { class: 'card-t' }, title, h('span', { class: 'pill' }, count), sub && h('span', { class: 'card-sub' }, sub)),
+    right);
+}
+
+function fold(key, label, items) {
+  if (!items.length) { S.folds[key] = false; return null; }
+  const open = !!S.folds[key];
+  return h('div', { class: 'fold' },
+    h('button', { class: 'fold-h', 'data-act': 'fold', 'data-k': key, 'aria-expanded': String(open) }, `${label} (${items.length})`),
+    open && h('div', { class: 'fold-b' + fade('fold' + key) }, items.map(it =>
+      h('div', { class: 'fold-i' },
+        h('span', null, it.type === 'pattern' ? it.name : '«' + phrase(it) + '»'),
+        h('button', { class: 'btn sm', 'data-act': 'restore', 'data-id': it.id }, icon('undo'), 'вернуть')))));
+}
+
+function candRow(c) {
+  const id = c.id, text = phrase(c);
+  const top = c.edit
+    ? h('div', { class: 'editbox' },
+        h('input', { class: 'edit-in', id: 'in-' + id, 'data-id': id, type: 'text', enterkeyhint: 'done',
+          autocomplete: 'off', spellcheck: 'false', placeholder: 'своя формулировка', 'aria-label': 'фраза текстом', value: c.draft }),
+        h('button', { class: 'ib', 'data-act': 'ok', 'data-id': id, 'aria-label': 'готово', title: 'готово' }, icon('ok')),
+        h('button', { class: 'ib', 'data-act': 'cancel', 'data-id': id, 'aria-label': 'отмена', title: 'отмена' }, icon('x')))
+    : h('div', { class: 'words' }, c.words.map((word, i) =>
+        h('button', { class: 'w' + (c.cut[i] ? ' cut' : ''), 'data-act': 'cut', 'data-id': id, 'data-i': i,
+          'aria-pressed': String(c.cut[i]), title: c.cut[i] ? 'вернуть слово' : 'вырезать слово' }, word)));
+  return h('div', { class: 'cand' + fade('row' + id), 'data-row': id },
+    h('div', { class: 'cand-top' }, top,
+      h('div', { class: 'cnt' },
+        h('button', { class: 'badge', 'data-act': 'ex', 'data-id': id, 'aria-expanded': String(c.open), title: 'примеры' }, '×' + c.count),
+        h('span', { class: 'of' }, 'из ' + REPLIES))),
+    !c.edit && h('div', { class: 'result' },
+      h('span', { class: 'arrow' }, '→'),
+      h('span', { class: 'res' + (text ? '' : ' none') }, text || 'ничего не осталось'),
+      h('button', { class: 'ib ghost', 'data-act': 'edit', 'data-id': id, 'aria-label': 'править текстом', title: 'править текстом' }, icon('pen'))),
+    c.open && h('div', { class: 'exs' + fade('ex' + id) },
+      c.ex.map(sentence => h('p', null, '«', marked(sentence, text ? text.split(' … ') : []), '»'))),
+    h('div', { class: 'acts' },
+      h('button', { class: 'btn ban', 'data-act': 'ban', 'data-id': id, disabled: !text }, 'В бан'),
+      h('button', { class: 'btn', 'data-act': 'intent', 'data-id': id }, 'Нарочно'),
+      h('button', { class: 'btn', 'data-act': 'hide', 'data-id': id }, 'Скрыть')));
+}
+
+function candCard() {
+  const list = S.cands.filter(c => c.status === 'list'), rows = [];
+  let openers = false;
+  for (const c of list) {
+    if (c.type === 'opener' && !openers) { openers = true; rows.push(h('div', { class: 'grp' }, 'Зачины · начало ответа')); }
+    rows.push(candRow(c));
+  }
+  return h('section', { class: 'card', id: 'cands' },
+    cardHead('Кандидаты', list.length, `по ${REPLIES} ответам`),
+    h('div', { class: 'card-b' },
+      list.length ? h('div', { class: 'hint' }, 'Тап по слову вырезает его из фразы.') : h('div', { class: 'empty' }, 'Кандидатов нет.'),
+      rows,
+      fold('intent', 'Нарочно', S.cands.filter(c => c.status === 'intent')),
+      fold('hidden', 'Скрыто', S.cands.filter(c => c.status === 'hidden'))));
+}
+
+function barColor(hits) {
+  return hits >= 6 ? 'var(--r)' : hits >= 4 ? 'var(--a)' : 'rgba(245,244,238,.7)';
+}
+
+function patCard() {
+  const list = S.pats.filter(p => p.status === 'list');
+  return h('section', { class: 'card', id: 'pats' },
+    cardHead('Приёмы', list.length, 'Jev · 10 последних ответов'),
+    h('div', { class: 'card-b' },
+      !list.length && h('div', { class: 'empty' }, 'Приёмов нет.'),
+      list.map(p => h('div', { class: 'pat' + fade('row' + p.id), 'data-row': p.id },
+        h('div', { class: 'pat-h' }, h('span', { class: 'pat-n' }, p.name), h('span', { class: 'pat-k' }, `${p.hits} из 10`)),
+        h('div', { class: 'bar' }, h('i', { style: `width:${p.hits * 10}%;background:${barColor(p.hits)}` })),
+        h('div', { class: 'pat-ex' }, '«' + p.ex + '»'),
+        h('div', { class: 'acts' },
+          h('button', { class: 'btn ban', 'data-act': 'ban', 'data-id': p.id }, 'В бан'),
+          h('button', { class: 'btn last', 'data-act': 'hide', 'data-id': p.id }, 'Скрыть')))),
+      fold('phidden', 'Скрыто', S.pats.filter(p => p.status === 'hidden'))));
+}
+
+function banChip(it) {
+  const isPat = it.type === 'pattern', open = S.editBan === it.id;
+  return h('span', { class: 'bchip' + (isPat ? ' p' : '') + (open ? ' sel' : '') + fade('chip' + it.id), 'data-chip': it.id },
+    h('button', { class: 'bt', 'data-act': 'bedit', 'data-id': it.id, 'aria-expanded': String(open), title: 'альтернатива и регекс' },
+      isPat && h('span', { class: 'g', 'aria-hidden': 'true' }, '◇'),
+      it.type === 'opener' && h('span', { class: 'tag' }, 'зачин'),
+      h('span', { class: 't' }, isPat ? short(it.name) : phrase(it)),
+      it.alt && h('span', { class: 'am', title: 'есть альтернатива' }, '↷')),
+    h('button', { class: 'bx', 'data-act': 'unban', 'data-id': it.id, 'aria-label': 'убрать из бан-листа', title: 'убрать' }, icon('x')));
+}
+
+function banEditor(it) {
+  const isPat = it.type === 'pattern';
+  return h('div', { class: 'bed' + fade('bed'), id: 'bed' },
+    h('div', { class: 'bed-t' }, h('span', { class: 'k' }, isPat ? 'приём' : it.type === 'opener' ? 'зачин' : 'фраза'),
+      isPat ? short(it.name) : '«' + phrase(it) + '»'),
+    h('div', { class: 'row' },
+      h('input', { class: 'alt-in', id: 'alt-in', type: 'text', enterkeyhint: 'done', autocomplete: 'off',
+        placeholder: 'Вместо этого…', 'aria-label': 'альтернатива', value: S.altDraft }),
+      h('button', { class: 'ib', 'data-act': 'altok', 'aria-label': 'сохранить', title: 'сохранить' }, icon('ok')),
+      h('button', { class: 'ib', 'data-act': 'altclose', 'aria-label': 'закрыть', title: 'закрыть' }, icon('x'))),
+    h('div', { class: 'sgs' },
+      h('button', { class: 'btn', 'data-act': 'suggest' }, 'Предложить'),
+      S.sugg && it.sugg.map((s, i) => h('button', { class: 'sg' + fade('sugg'), 'data-act': 'pick', 'data-i': i }, s))),
+    it.alt && h('div', { class: 'saved' }, '↷ сохранено: ' + it.alt),
+    h('div', { class: 'rx-box' },
+      h('div', { class: 'k' }, '→ регекс'),
+      isPat
+        ? h('div', { class: 'rx-hint' }, 'для приёмов регекс не строится — только строка в блоке')
+        : [h('code', { class: 'rx' }, regexFor(it)),
+           h('div', { class: 'rx-hint' }, 'подставит альтернативу или уберёт фразу'),
+           h('button', { class: 'btn rx-btn', 'data-act': 'rx' }, 'в регексы персонажа')]));
+}
+
+function banCard() {
+  const items = S.ban.map(get), text = blockText(S.lang);
+  const tokens = Math.round(text.length / 3.5 / 10) * 10;
+  const editing = S.ban.includes(S.editBan) ? get(S.editBan) : null;
+  return h('section', { class: 'card ban-card' + (S.inject ? '' : ' off'), id: 'ban' },
+    cardHead('Бан-лист', items.length, null,
+      h('button', { class: 'tog', 'data-act': 'inject', 'aria-pressed': String(S.inject) }, 'в промпт')),
+    h('div', { class: 'card-b' },
+      items.length
+        ? [h('div', { class: 'hint' }, 'Тап по чипу — альтернатива и регекс.'),
+           h('div', { class: 'bchips' }, items.map(banChip)), editing && banEditor(editing)]
+        : h('div', { class: 'empty' }, 'Пока пусто — фразы и приёмы попадают сюда по кнопке «В бан».'),
+      h('div', { class: 'fold' },
+        h('div', { class: 'fold-row' },
+          h('button', { class: 'fold-h', 'data-act': 'block', 'aria-expanded': String(S.block) }, S.block ? 'Скрыть блок' : 'Показать блок'),
+          h('div', { class: 'seg tiny', role: 'group', 'aria-label': 'язык блока' },
+            ['ru', 'en'].map(k => h('button', { 'data-act': 'lang', 'data-k': k, 'aria-pressed': String(S.lang === k) }, k.toUpperCase())))),
+        S.block && h('div', { class: 'fold-b' + fade('block') },
+          h('pre', { class: 'block', lang: S.lang }, text || '(пусто — в промпт ничего не уйдёт)'),
+          h('div', { class: 'tok' }, `~ ${tokens} токенов` + (S.inject ? '' : ' · выключено, в промпт не уходит'))))));
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.replaceChildren(...[header(), sensors(), sensorCard(), candCard(), patCard(), banCard(),
+    h('footer', { class: 'foot' }, 'макет · ничего не сохраняется')].filter(Boolean));
+  S.fresh.clear();
+  if (S.focus) {
+    const input = document.getElementById('in-' + S.focus);
+    S.focus = null;
+    if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+  }
+}
+
+const root = document.getElementById('app');
+root.addEventListener('click', e => {
+  // A tap outside the open «Вид» popover only closes it.
+  if (S.view.open && !e.target.closest('.pop') && !e.target.closest('[data-act="view"]')) {
+    S.view.open = false; render(); return;
+  }
+  const button = e.target.closest('[data-act]');
+  if (!button || button.disabled || !A[button.dataset.act]) return;
+  A[button.dataset.act](button.dataset);
+  render();
+});
+root.addEventListener('input', e => {
+  const t = e.target;
+  if (t.classList.contains('edit-in')) get(t.dataset.id).draft = t.value;
+  else if (t.classList.contains('alt-in')) S.altDraft = t.value;
+  else if (t.dataset.view) {  // sliders apply live without a re-render, so the drag is not interrupted
+    const key = t.dataset.view;
+    S.view[key] = Number(t.value);
+    applyView();
+    document.getElementById('v-' + key).textContent = key === 'pw' ? pwLabel(S.view.pw) : S.view.fs + ' px';
+  }
+});
+root.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t.classList.contains('edit-in')) {
+    if (e.key === 'Enter') { e.preventDefault(); A.ok({ id: t.dataset.id }); render(); }
+    else if (e.key === 'Escape') { A.cancel({ id: t.dataset.id }); render(); }
+  } else if (t.classList.contains('alt-in')) {
+    if (e.key === 'Enter') { e.preventDefault(); A.altok(); render(); }
+    else if (e.key === 'Escape') { A.altclose(); render(); }
+  }
+});
+applyView();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+{
+  "enabled": true,
+  "language": "ru",
+  "hints": true,
+  "chatId": "chat-observatory",
+  "groupChat": false,
+  "avatar": "observatory-guide.png",
+  "characterName": "Смотритель",
+  "mined": 60,
+  "replies": 108,
+  "minDf": 3,
+  "altProfile": true,
+  "candidates": [
+    {
+      "key": "уголк губ дрогнул в подоб улыбк",
+      "words": ["уголки", "губ", "дрогнули", "в", "подобии", "улыбки"],
+      "df": 9,
+      "docs": [12, 19, 27, 33, 38, 41, 47, 52, 58],
+      "examples": [
+        "Он отвёл глаза, и уголки губ дрогнули в подобии улыбки.",
+        "Уголки губ дрогнули в подобии улыбки, но взгляд остался холодным."
+      ]
+    },
+    {
+      "key": "тишин повисл в воздух",
+      "words": ["тишина", "повисла", "в", "воздухе"],
+      "df": 7,
+      "docs": [8, 15, 22, 30, 44, 51, 57],
+      "examples": [
+        "Тишина повисла в воздухе, тяжёлая и вязкая.",
+        "Когда дверь закрылась, тишина повисла в воздухе."
+      ]
+    },
+    {
+      "key": "что-т неуловим мелькнул в ег взгляд",
+      "words": ["что-то", "неуловимое", "мелькнуло", "в", "его", "взгляде"],
+      "df": 6,
+      "docs": [10, 18, 29, 36, 49, 55],
+      "examples": [
+        "Что-то неуловимое мелькнуло в его взгляде и тут же погасло.",
+        "Он промолчал, но что-то неуловимое мелькнуло в его взгляде."
+      ]
+    },
+    {
+      "key": "на мгновен замер",
+      "words": ["на", "мгновение", "замер"],
+      "df": 5,
+      "docs": [14, 26, 39, 46, 59],
+      "examples": [
+        "Он на мгновение замер у порога.",
+        "Услышав шаги, он на мгновение замер и прислушался."
+      ]
+    },
+    {
+      "key": "голос звучал тиш обычн",
+      "words": ["голос", "звучал", "тише", "обычного"],
+      "df": 4,
+      "docs": [21, 34, 43, 54],
+      "examples": [
+        "Его голос звучал тише обычного, почти шёпотом.",
+        "— Останься, — голос звучал тише обычного."
+      ]
+    },
+    {
+      "key": "по спин пробежал холодок",
+      "words": ["по", "спине", "пробежал", "холодок"],
+      "df": 4,
+      "docs": [17, 31, 45, 56],
+      "examples": [
+        "По спине пробежал холодок, когда скрипнула лестница.",
+        "Он обернулся, и по спине пробежал холодок."
+      ]
+    },
+    {
+      "key": "воздух между ним сгустил",
+      "words": ["воздух", "между", "ними", "сгустился"],
+      "df": 3,
+      "docs": [24, 40, 53],
+      "examples": [
+        "Воздух между ними сгустился, как перед грозой.",
+        "Она шагнула ближе, и воздух между ними сгустился."
+      ]
+    },
+    {
+      "key": "пальц сжал в кулак",
+      "words": ["пальцы", "сжались", "в", "кулаки"],
+      "df": 3,
+      "docs": [20, 37, 50],
+      "examples": [
+        "Его пальцы сжались в кулаки.",
+        "Пальцы сжались в кулаки, но голос остался ровным."
+      ]
+    }
+  ],
+  "openers": [
+    { "key": "он медлен", "text": "Он медленно поднял взгляд…", "df": 6, "docs": [11, 23, 32, 42, 48, 60] },
+    { "key": "тишин", "text": "Тишина.", "df": 4, "docs": [16, 28, 35, 57] }
+  ],
+  "intentional": ["да, милорд"],
+  "hidden": ["в глубине души"],
+  "jev": { "enabled": true, "configured": true, "busy": false, "error": null, "lastMesId": 214 },
+  "sensors": {
+    "repeats": { "value": 2.9, "colour": "red", "series": [1.4, 1.6, 1.5, 1.9, 2.0, 2.2, 2.4, 2.3, 2.6, 2.8, 2.7, 2.9] },
+    "speaks": { "value": 0.4, "colour": "green", "series": [0.9, 0.7, 0.8, 0.5, 0.6, 0.4, 0.5, 0.3, 0.4, 0.5, 0.4, 0.4] },
+    "change": { "value": 1.3, "colour": "amber", "series": [2.4, 2.2, 2.3, 1.9, 2.0, 1.7, 1.8, 1.5, 1.6, 1.3, 1.4, 1.3] }
+  },
+  "patterns": [
+    { "id": "antithesis", "source": "jev", "count": 4, "window": 10, "rate": 0.4, "example": "Это был не страх, а что-то куда более древнее." },
+    { "id": "filter", "source": "jev", "count": 7, "window": 10, "rate": 0.7, "example": "Она заметила, как дрогнули его пальцы." },
+    { "id": "negation", "source": "jev", "count": 3, "window": 10, "rate": 0.3, "example": "Он не пошевелился и ничего не ответил." },
+    { "id": "aphorism", "source": "jev", "count": 6, "window": 10, "rate": 0.6, "example": "И в этом молчании было больше правды, чем в любых словах." },
+    { "id": "simile", "source": "miner", "count": 5, "window": 10, "rate": 0.5, "example": "Тени легли на пол, словно разлитые чернила." },
+    { "id": "indefinite", "source": "miner", "count": 4, "window": 10, "rate": 0.4, "example": "Что-то неуловимое мелькнуло в его взгляде и тут же погасло." },
+    { "id": "moment", "source": "miner", "count": 2, "window": 10, "rate": 0.2, "example": "Он на мгновение замер у порога." }
+  ],
+  "bans": [
+    {
+      "id": "b_3f9a1c07",
+      "kind": "phrase",
+      "text": "сердце пропустило удар",
+      "words": ["сердце", "пропустило", "удар"],
+      "cuts": [],
+      "alt": "дыхание сбилось",
+      "regex": true,
+      "regexMode": "prompt",
+      "regexScope": "character",
+      "added": 1727790000000,
+      "sinceIndex": 180,
+      "seenAfter": 0,
+      "sinceReplies": 17,
+      "matches": 5,
+      "findRegex": "/(?<![а-яёa-z])сердц[а-яё]*\\s+пропуст[а-яё]*\\s+удар[а-яё]*/gi"
+    },
+    {
+      "id": "b_8d2e4b51",
+      "kind": "phrase",
+      "text": "глаза … потемнели",
+      "words": ["его", "глаза", "на", "миг", "потемнели"],
+      "cuts": [0, 2, 3],
+      "alt": "",
+      "regex": false,
+      "regexMode": "prompt",
+      "regexScope": "character",
+      "added": 1727793600000,
+      "sinceIndex": 196,
+      "seenAfter": 3,
+      "sinceReplies": 12,
+      "matches": 4,
+      "findRegex": "/(?<![а-яёa-z])глаз[а-яё]*[^.!?]{0,40}потемнел[а-яё]*/gi"
+    },
+    {
+      "id": "b_c41f6e93",
+      "kind": "pattern",
+      "text": "aphorism",
+      "words": [],
+      "cuts": [],
+      "alt": "",
+      "regex": false,
+      "regexMode": "prompt",
+      "regexScope": "character",
+      "added": 1727797200000,
+      "sinceIndex": 205,
+      "seenAfter": 0,
+      "sinceReplies": 5,
+      "matches": 0,
+      "findRegex": ""
+    }
+  ],
+  "visual": {
+    "opacity": 0.93, "blur": 14, "fontSize": 14, "widthVw": 80, "accent": "#f5f4ee",
+    "base": null, "text": null, "radius": 18, "motion": true, "spacing": "cozy", "chipSize": 36
+  },
+  "inject": { "enabled": true, "depth": 1, "language": "en" },
+  "block": {
+    "text": "[Avoid] Phrases (verbatim, any inflection): «глаза … потемнели».\nInstead of «сердце пропустило удар»: дыхание сбилось.\nPatterns: closing aphorism as the last line.",
+    "tokens": 40
+  },
+  "busy": { "rescan": false, "alternatives": null, "regex": null },
+  "log": [
+    {
+      "at": 1727797260000, "kind": "jev", "ms": 412, "status": 200,
+      "request": { "model": "typesafe/jev-latest", "questions": 7 },
+      "response": { "answers": 7, "usage": { "input": 2140, "output": 21 } },
+      "error": null
+    },
+    {
+      "at": 1727797100000, "kind": "alt", "ms": 1830, "status": 200,
+      "request": { "phrase": "сердце пропустило удар" },
+      "response": { "lines": 3 },
+      "error": null
+    },
+    {
+      "at": 1727796900000, "kind": "jev", "ms": 2010, "status": 429,
+      "request": { "model": "typesafe/jev-latest", "questions": 7 },
+      "response": null,
+      "error": { "kind": "credit", "message": "Rate limited, retried once" }
+    }
+  ]
+}

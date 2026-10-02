@@ -1,0 +1,620 @@
+/* Sable Echo drawer (SPEC §13, §13.1). Visual settings arrive as inline custom properties on the drawer and the
+   tab, with the Sable Trackers names (--st-sable-* → --st-echo-*): --st-echo-opacity, -blur, -font, -width,
+   -accent, -radius, -base-rgb (panel "r,g,b"), -ink-rgb (black or white overlays on that base), -accent-ink-rgb
+   (text on a solid accent fill), -text, plus --st-echo-chip (chip height, 28–48px) and --st-echo-chip-pad. Choices
+   arrive as data attributes only while they differ from the default look: data-st-echo-tone, -motion, -spacing,
+   -chip ("compact" while chips are under 36px).
+   Every use falls back to the default dark glass. Text sizes are offsets from the base font. */
+
+/* SillyTavern puts a transform on <html>, so the 0px-tall <html> is the containing block of every fixed box here:
+   top+bottom stretching and percentage heights resolve to 0. Fixed boxes get explicit viewport heights instead. */
+.st-echo-drawer, .st-echo-tab {
+  --st-echo-i: var(--st-echo-ink-rgb, 255,255,255);
+  --st-echo-acc: var(--st-echo-accent, rgb(var(--st-echo-ink-rgb, 245,244,238)));
+  --st-echo-acc-ink: var(--st-echo-accent-ink-rgb, 0,0,0);
+  --st-echo-g: #93dca5; --st-echo-a: #e9c16f; --st-echo-r: #f29d9d;
+  /* Wide screens: half of widthVw (80 → 40vw), never under 420px. Phones (SPEC §19.3): a side panel of
+     max(320px, widthVw) with the page visible next to it, or the full width when data-st-echo-phone="full". */
+  --st-echo-panel-w: clamp(420px, calc(var(--st-echo-width, 80vw) / 2), 100vw);
+}
+@media (max-width: 699.98px) {
+  .st-echo-drawer, .st-echo-tab { --st-echo-panel-w: min(100vw, max(320px, var(--st-echo-width, 80vw))); }
+  .st-echo-drawer[data-st-echo-phone="full"], .st-echo-tab[data-st-echo-phone="full"] { --st-echo-panel-w: 100vw; }
+}
+
+.st-echo-drawer {
+  position: fixed; top: var(--st-echo-top, 0px); right: 0; left: auto; bottom: auto; z-index: 9510;
+  width: var(--st-echo-panel-w); max-width: 100vw;
+  height: calc(100vh - var(--st-echo-top, 0px)); height: calc(100dvh - var(--st-echo-top, 0px));
+  display: flex; flex-direction: column; overflow: hidden; margin: 0; padding: 0; box-sizing: border-box;
+  --st-echo-fs: var(--st-echo-font, 13px);
+  --st-echo-ch: var(--st-echo-chip, 36px);
+  --st-echo-bh: max(36px, var(--st-echo-chip, 36px));
+  /* Chip text follows the chip height a little (±3px over 28–48px), so a size change reads as a size change. */
+  --st-echo-chip-fs: calc(var(--st-echo-fs) + (var(--st-echo-chip, 36px) - 36px) / 4);
+  --st-echo-mono: ui-monospace, 'Cascadia Mono', Consolas, 'Roboto Mono', 'Noto Sans Mono', monospace;
+  color: var(--st-echo-text, var(--SmartThemeBodyColor, #eeeae7));
+  background: rgba(var(--st-echo-base-rgb, 14,14,18), var(--st-echo-opacity, .93));
+  backdrop-filter: blur(var(--st-echo-blur, 14px)) saturate(120%); -webkit-backdrop-filter: blur(var(--st-echo-blur, 14px)) saturate(120%);
+  border: 1px solid rgba(var(--st-echo-i), .1); border-right: 0;
+  border-radius: var(--st-echo-radius, 18px) 0 0 var(--st-echo-radius, 18px);
+  box-shadow: -14px 0 36px rgba(0,0,0,.38);
+  font-family: inherit; font-size: var(--st-echo-fs); line-height: 1.4; text-align: left; overflow-wrap: anywhere;
+  animation: st-echo-in 140ms ease-out;
+}
+@media (max-width: 699.98px) { .st-echo-drawer[data-st-echo-phone="full"] { border: 0; border-radius: 0; box-shadow: none; } }
+.st-echo-drawer, .st-echo-drawer *, .st-echo-drawer *::before, .st-echo-drawer *::after, .st-echo-tab, .st-echo-tab::before { box-sizing: border-box; }
+.st-echo-drawer * { min-width: 0; }
+.st-echo-drawer[hidden], .st-echo-drawer [hidden], .st-echo-tab[hidden] { display: none !important; }
+.st-echo-drawer :where(h2, p, pre, code, label, output) { margin: 0; padding: 0; }
+/* Neutral controls, then the component classes below win by order. */
+.st-echo-drawer :where(button), .st-echo-tab {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit;
+  text-shadow: none; -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.st-echo-drawer :where(button:disabled) { cursor: default; }
+.st-echo-drawer :focus-visible, .st-echo-tab:focus-visible { outline: 2px solid var(--st-echo-acc); outline-offset: 2px; }
+@keyframes st-echo-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes st-echo-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes st-echo-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes st-echo-spin { to { transform: rotate(360deg); } }
+
+.st-echo-ico { display: inline-flex; flex: none; width: 16px; height: 16px; }
+.st-echo-ico svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Header: logo + title, three glass buttons, the status line. It stays put; the cards scroll under it. */
+.st-echo-hd { flex: none; padding: max(10px, env(safe-area-inset-top)) 10px 8px 16px; border-bottom: 1px solid rgba(var(--st-echo-i), .07); }
+.st-echo-hd-row { display: flex; align-items: center; gap: 6px; }
+.st-echo-title { flex: 1; display: flex; align-items: center; gap: 9px; color: inherit; font-size: calc(var(--st-echo-fs) + 4px); font-weight: 700; line-height: 1.2; letter-spacing: .01em; }
+.st-echo-title > .st-echo-ico { width: 20px; height: 20px; opacity: .9; }
+.st-echo-status { margin: 1px 0 0 29px; font-size: calc(var(--st-echo-fs) - 1.5px); opacity: .6; font-variant-numeric: tabular-nums; }
+.st-echo-status.st-echo-err { margin-top: 2px; color: var(--st-echo-r); opacity: 1; }
+.st-echo-ib {
+  width: var(--st-echo-bh); height: var(--st-echo-bh); flex: none; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 12px; background: rgba(var(--st-echo-i), .05); border: 1px solid rgba(var(--st-echo-i), .12);
+  transition: background-color 120ms, border-color 120ms;
+}
+.st-echo-ib:active:not(:disabled) { background: rgba(var(--st-echo-i), .14); }
+.st-echo-ib[aria-expanded="true"] { color: rgb(var(--st-echo-acc-ink)); background: var(--st-echo-acc); border-color: rgba(var(--st-echo-i), .45); }
+.st-echo-ib[aria-pressed="true"] { color: rgb(var(--st-echo-acc-ink)); background: var(--st-echo-acc); border-color: rgba(var(--st-echo-i), .45); }
+.st-echo-ib:disabled { opacity: .35; }
+.st-echo-ib.st-echo-ghost { background: transparent; border-color: transparent; opacity: .7; }
+.st-echo-spin .st-echo-ico svg { animation: st-echo-spin .8s linear infinite; }
+
+/* The scroller holds everything below the header; the toast and the view sheet float over it. */
+.st-echo-scroll {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 8px max(16px, env(safe-area-inset-bottom)); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: rgba(var(--st-echo-i), .18) transparent;
+}
+.st-echo-scroll > * { flex: none; }
+
+/* Calm one-liners: connect Jev, group chat, disabled. */
+.st-echo-notice { display: flex; align-items: center; gap: 4px; padding: 2px 4px 2px 12px; border-radius: 14px; border: 1px dashed rgba(var(--st-echo-i), .24); background: rgba(var(--st-echo-i), .04); }
+.st-echo-notice.st-echo-calm { flex-wrap: wrap; gap: 8px; padding: 12px 14px; border-style: solid; }
+.st-echo-notice-b { flex: 1; min-height: 44px; display: flex; align-items: center; gap: 8px; text-align: left; font-size: calc(var(--st-echo-fs) - .5px); }
+.st-echo-notice-b > .st-echo-ico { width: 14px; height: 14px; opacity: .7; }
+
+/* Hints: one muted line with its own ✕ (turns hints off). */
+.st-echo-hint { display: flex; align-items: center; gap: 4px; min-height: 36px; font-size: calc(var(--st-echo-fs) - 1.5px); }
+.st-echo-hint > span { flex: 1; opacity: .55; }
+.st-echo-hint-x { width: 36px; height: 36px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; opacity: .45; }
+.st-echo-hint-x .st-echo-ico { width: 12px; height: 12px; }
+
+/* Cards: rounded glass with a thin border; the header folds the card. */
+.st-echo-card {
+  position: relative; border: 1px solid rgba(var(--st-echo-i), .13); border-radius: var(--st-echo-radius, 18px);
+  background: linear-gradient(180deg, rgba(var(--st-echo-i), .05), rgba(var(--st-echo-i), .02));
+  box-shadow: 0 6px 18px rgba(0,0,0,.16), inset 0 1px 0 rgba(var(--st-echo-i), .04);
+}
+/* Accent bar only on the ban list, only while it goes into the prompt (its meaning in Sable Trackers). */
+.st-echo-ban-card.st-echo-on::before {
+  content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--st-echo-acc); pointer-events: none;
+}
+.st-echo-card-h { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 8px 0 0; }
+.st-echo-card-t {
+  flex: 1; min-height: 46px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; padding: 4px 0 4px 16px;
+  font-size: calc(var(--st-echo-fs) + 1px); font-weight: 700; line-height: 1.2; text-align: left;
+}
+.st-echo-card-t::after {
+  content: ''; flex: none; width: 6px; height: 6px; margin: 0 6px 0 auto; opacity: .5;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(1px) rotate(-135deg); transition: transform 160ms ease-out;
+}
+.st-echo-card-t[aria-expanded="false"]::after { transform: translateY(-2px) rotate(45deg); }
+.st-echo-card-sub { font-size: calc(var(--st-echo-fs) - 1.5px); font-weight: 400; opacity: .55; }
+.st-echo-pill { padding: 1px 7px; border-radius: 999px; border: 1px solid rgba(var(--st-echo-i), .2); font-size: calc(var(--st-echo-fs) - 2px); font-weight: 600; font-variant-numeric: tabular-nums; }
+.st-echo-card-b { border-top: 1px solid rgba(var(--st-echo-i), .07); padding: 10px; }
+.st-echo-empty { padding: 8px 0 10px; opacity: .55; }
+.st-echo-note, .st-echo-caption { font-size: calc(var(--st-echo-fs) - 1.5px); opacity: .55; }
+.st-echo-caption { padding: 4px 0 2px; }
+
+/* Sensor strip: three equal buttons, dot + name over value · level; tap opens the chart card. */
+.st-echo-c-green { --st-echo-c: var(--st-echo-g); }
+.st-echo-c-amber { --st-echo-c: var(--st-echo-a); }
+.st-echo-c-red { --st-echo-c: var(--st-echo-r); }
+.st-echo-c-none { --st-echo-c: rgba(var(--st-echo-i), .4); }
+.st-echo-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--st-echo-c); }
+/* Three sensors in a row; a button never shrinks below its text (the row is 36px tall, SPEC §18), so on a narrow
+   side panel (SPEC §19.3, from 320px) the last one wraps to the next line instead of overflowing. */
+.st-echo-sensors { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-echo-sens {
+  flex: 1 1 96px; min-width: max-content; min-height: 50px; display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; border-radius: 14px;
+  border: 1px solid rgba(var(--st-echo-i), .12); background: rgba(var(--st-echo-i), .04); text-align: left; transition: background-color 120ms, border-color 120ms;
+}
+.st-echo-sens[aria-expanded="true"] { background: rgba(var(--st-echo-i), .1); border-color: rgba(var(--st-echo-i), .32); }
+.st-echo-sens-t { display: flex; flex-direction: column; line-height: 1.25; }
+.st-echo-sens-n { font-size: calc(var(--st-echo-fs) - 1.5px); opacity: .75; overflow-wrap: break-word; }
+.st-echo-sens-v { font-size: calc(var(--st-echo-fs) - 1.5px); white-space: nowrap; }
+.st-echo-sens-v > b { font-size: calc(var(--st-echo-fs) + .5px); font-variant-numeric: tabular-nums; }
+.st-echo-sd { padding: 10px 14px 12px 16px; }
+.st-echo-sd-h { display: flex; align-items: center; gap: 8px; }
+.st-echo-sd-v { margin-left: auto; font-weight: 700; font-size: calc(var(--st-echo-fs) + 3px); font-variant-numeric: tabular-nums; }
+.st-echo-sd-v small { font-size: calc(var(--st-echo-fs) - 2px); font-weight: 400; opacity: .5; }
+.st-echo-spark { margin: 8px 0 4px; }
+.st-echo-spark svg { display: block; width: 100%; height: auto; }
+.st-echo-spark .st-echo-grid { stroke: rgba(var(--st-echo-i), .09); stroke-dasharray: 3 4; }
+.st-echo-spark .st-echo-area { fill: var(--st-echo-c); opacity: .12; stroke: none; }
+.st-echo-spark .st-echo-line { fill: none; stroke: var(--st-echo-c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.st-echo-spark .st-echo-end { fill: var(--st-echo-c); stroke: none; }
+
+/* Candidates. Chips mode (default): the word chips are the phrase, then the count line and two actions.
+   Collapsed mode: bold phrase, count line, two actions; «Обрезать» opens the word chips. */
+.st-echo-cand { padding: 6px 0; }
+.st-echo-cand.st-echo-chips > .st-echo-trim { margin-top: 0; }
+.st-echo-cand.st-echo-chips > .st-echo-result { margin-top: 2px; }
+.st-echo-cand + .st-echo-cand, .st-echo-pat + .st-echo-pat, .st-echo-more + .st-echo-cand { border-top: 1px solid rgba(var(--st-echo-i), .06); }
+.st-echo-cand-text { font-size: calc(var(--st-echo-fs) + .5px); font-weight: 700; line-height: 1.35; overflow-wrap: break-word; }
+.st-echo-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px; min-height: 36px; font-size: calc(var(--st-echo-fs) - 1.5px); }
+.st-echo-meta > span { opacity: .6; font-variant-numeric: tabular-nums; }
+.st-echo-link {
+  min-height: 36px; min-width: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px;
+  text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; opacity: .85;
+}
+.st-echo-link[aria-expanded="true"] { text-decoration-style: solid; opacity: 1; }
+.st-echo-exs { margin: 2px 0 6px; padding: 8px 10px; border-radius: 12px; background: rgba(var(--st-echo-i), .05); font-size: calc(var(--st-echo-fs) - .5px); line-height: 1.5; animation: st-echo-fade 120ms ease-out; }
+.st-echo-exs p { opacity: .88; }
+.st-echo-exs p + p { margin-top: 6px; }
+.st-echo-exs mark { color: inherit; background: rgba(233,193,111,.24); border-radius: 4px; padding: 0 2px; }
+.st-echo-trim { margin: 2px 0 2px; animation: st-echo-fade 120ms ease-out; }
+.st-echo-trim-row { display: flex; align-items: flex-start; gap: 6px; }
+.st-echo-words { flex: 1; display: flex; flex-wrap: wrap; gap: 5px; }
+.st-echo-w {
+  min-height: var(--st-echo-ch); min-width: var(--st-echo-ch); padding: 0 var(--st-echo-chip-pad, 10px); border-radius: 9px;
+  border: 1px solid rgba(var(--st-echo-i), .16); background: rgba(var(--st-echo-i), .07);
+  font-size: calc(var(--st-echo-chip-fs) + .5px); line-height: 1.2; text-align: center; transition: opacity 120ms, background-color 120ms;
+}
+.st-echo-w.st-echo-cut { text-decoration: line-through; text-decoration-thickness: 1.5px; opacity: .38; background: transparent; border-style: dashed; }
+.st-echo-result { display: flex; align-items: center; gap: 7px; min-height: 36px; margin-top: 4px; }
+.st-echo-arrow { opacity: .45; }
+.st-echo-res { flex: 1; font-weight: 600; }
+.st-echo-res.st-echo-none { font-weight: 400; font-style: italic; opacity: .45; }
+.st-echo-editbox, .st-echo-row { display: flex; align-items: center; gap: 6px; }
+.st-echo-editbox { margin: 4px 0; }
+.st-echo-drawer .st-echo-input {
+  flex: 1; min-width: 0; width: auto; height: var(--st-echo-bh); margin: 0; padding: 0 10px; border-radius: 10px;
+  border: 1px solid rgba(var(--st-echo-i), .32); background: rgba(0,0,0,.3); color: inherit; box-shadow: none; outline: none;
+  font: inherit; font-size: calc(var(--st-echo-fs) + 1px);
+}
+.st-echo-drawer[data-st-echo-tone="light"] .st-echo-input { background: rgba(255,255,255,.6); }
+.st-echo-drawer .st-echo-input:focus { border-color: var(--st-echo-acc); }
+.st-echo-drawer .st-echo-select { flex: 1; padding-right: 6px; text-overflow: ellipsis; cursor: pointer; }
+.st-echo-drawer .st-echo-select option { color: #111; background: #fff; }
+.st-echo-acts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(6.5em, auto); align-items: center; gap: 6px; margin-top: 8px; }
+.st-echo-acts.st-echo-one { grid-template-columns: auto; justify-content: start; }
+.st-echo-acts.st-echo-two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.st-echo-btn {
+  min-height: var(--st-echo-bh); padding: 4px 12px; border-radius: 10px; border: 1px solid rgba(var(--st-echo-i), .14);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: calc(var(--st-echo-fs) - .5px); font-weight: 600; line-height: 1.2;
+  text-align: center; transition: background-color 120ms, border-color 120ms;
+}
+.st-echo-btn:active:not(:disabled) { background: rgba(var(--st-echo-i), .1); }
+.st-echo-btn:disabled { opacity: .35; }
+.st-echo-btn .st-echo-ico { width: 14px; height: 14px; }
+.st-echo-btn.st-echo-ban { color: #f7caca; background: rgba(242,157,157,.13); border-color: rgba(242,157,157,.42); }
+.st-echo-btn.st-echo-sm { flex: none; font-weight: 500; }
+.st-echo-btn.st-echo-primary { width: 100%; color: rgb(var(--st-echo-acc-ink)); background: var(--st-echo-acc); border-color: rgba(var(--st-echo-i), .45); }
+.st-echo-btn.st-echo-wide, .st-echo-btn.st-echo-manual { width: 100%; }
+.st-echo-trim-link { justify-self: end; padding: 0 6px 0 4px; }
+@media (hover: hover) {
+  .st-echo-ib:hover:not(:disabled), .st-echo-btn:hover:not(:disabled) { border-color: rgba(var(--st-echo-i), .3); }
+  .st-echo-link:hover { opacity: 1; }
+}
+.st-echo-menu-wrap { position: relative; display: flex; }
+.st-echo-menu-wrap > .st-echo-btn { width: 100%; }
+.st-echo-menu-wrap > .st-echo-btn .st-echo-ico { opacity: .7; transition: transform 160ms ease-out; }
+.st-echo-menu-wrap > .st-echo-btn[aria-expanded="true"] .st-echo-ico { transform: rotate(180deg); }
+.st-echo-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 4; display: flex; flex-direction: column; min-width: 100%; width: max-content; max-width: min(280px, 80vw);
+  padding: 4px; border-radius: 14px; border: 1px solid rgba(var(--st-echo-i), .18);
+  background: linear-gradient(rgba(var(--st-echo-i), .06), rgba(var(--st-echo-i), .03)), rgb(var(--st-echo-base-rgb, 22,22,28));
+  box-shadow: 0 12px 30px rgba(0,0,0,.45); animation: st-echo-fade 120ms ease-out;
+}
+.st-echo-menu-i { min-height: 40px; padding: 0 12px; border-radius: 10px; text-align: left; white-space: nowrap; }
+.st-echo-menu-i:active, .st-echo-menu-i:focus-visible { background: rgba(var(--st-echo-i), .1); }
+@media (hover: hover) { .st-echo-menu-i:hover { background: rgba(var(--st-echo-i), .1); } }
+.st-echo-more { width: 100%; min-height: 40px; font-size: calc(var(--st-echo-fs) - .5px); font-weight: 600; opacity: .75; }
+.st-echo-grp { margin-top: 6px; padding-top: 12px; border-top: 1px solid rgba(var(--st-echo-i), .06); font-size: calc(var(--st-echo-fs) - 2.5px); font-weight: 700; letter-spacing: .07em; text-transform: uppercase; opacity: .55; }
+.st-echo-grp + .st-echo-cand { padding-top: 6px; }
+
+/* Folded lines: «Намеренно (N)», «Скрыто (N)», «Показать блок», «Регекс». */
+.st-echo-fold { border-top: 1px solid rgba(var(--st-echo-i), .06); }
+.st-echo-fold-h { width: 100%; min-height: 40px; display: flex; align-items: center; gap: 8px; text-align: left; font-size: calc(var(--st-echo-fs) - .5px); opacity: .72; }
+.st-echo-fold-h::after {
+  content: ''; flex: none; width: 6px; height: 6px; margin: 0 6px 0 auto; opacity: .7;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform 160ms ease-out;
+}
+.st-echo-fold-h[aria-expanded="true"]::after { transform: translateY(1px) rotate(-135deg); }
+.st-echo-fold-b { padding: 0 0 8px; animation: st-echo-fade 120ms ease-out; }
+.st-echo-fold-i { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.st-echo-fold-i > span { flex: 1; opacity: .78; }
+
+/* Patterns: neutral rows, a count with a quiet bar, the example, one button. */
+.st-echo-pat { padding: 6px 0; }
+.st-echo-pat-h { display: flex; align-items: baseline; gap: 8px; }
+.st-echo-pat-n { flex: 1; font-weight: 600; }
+.st-echo-pat-k { flex: none; font-size: calc(var(--st-echo-fs) - 1px); opacity: .7; font-variant-numeric: tabular-nums; }
+.st-echo-pat-k.st-echo-muted { opacity: .45; font-style: italic; }
+.st-echo-pat-h + .st-echo-pat-ex, .st-echo-pat-h + .st-echo-acts { margin-top: 6px; }
+.st-echo-bar { height: 4px; margin: 7px 0 6px; border-radius: 999px; background: rgba(var(--st-echo-i), .09); overflow: hidden; }
+.st-echo-bar > i { display: block; height: 100%; border-radius: inherit; background: rgba(var(--st-echo-i), .5); }
+.st-echo-pat-ex { font-style: italic; font-size: calc(var(--st-echo-fs) - .5px); opacity: .62; }
+
+/* Ban list: chips while short, rows beyond; the inject toggle sits in the card header. */
+.st-echo-tog {
+  flex: none; min-height: var(--st-echo-bh); padding: 0 12px; border-radius: 999px; border: 1px dashed rgba(var(--st-echo-i), .3);
+  font-size: calc(var(--st-echo-fs) - 1.5px); font-weight: 600; letter-spacing: .02em; transition: background-color 120ms;
+}
+.st-echo-tog[aria-pressed="true"] { color: rgb(var(--st-echo-acc-ink)); background: var(--st-echo-acc); border: 1px solid rgba(var(--st-echo-i), .5); }
+.st-echo-tog:disabled { opacity: .4; }
+.st-echo-bchips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 10px; }
+/* The ring is a box-shadow, so both halves of the chip keep the full chip height as tap area. */
+.st-echo-bchip {
+  display: inline-flex; align-items: stretch; max-width: 100%; min-height: var(--st-echo-ch); border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(var(--st-echo-i), .32); background: rgba(var(--st-echo-i), .07); font-size: calc(var(--st-echo-chip-fs) - .5px);
+  transition: background-color 120ms;
+}
+.st-echo-bchip.st-echo-sel { box-shadow: inset 0 0 0 1px var(--st-echo-acc); background: rgba(var(--st-echo-i), .15); }
+.st-echo-bt {
+  min-height: var(--st-echo-ch); display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px 6px;
+  padding: 4px 2px 4px calc(var(--st-echo-chip-pad, 10px) + 2px); border-radius: 999px 0 0 999px; text-align: left;
+}
+.st-echo-bt > .st-echo-t, .st-echo-brow-t > .st-echo-t { overflow-wrap: anywhere; }
+.st-echo-bx { width: max(36px, var(--st-echo-ch)); min-height: var(--st-echo-ch); flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 0 999px 999px 0; opacity: .65; }
+.st-echo-bx .st-echo-ico { width: 13px; height: 13px; }
+.st-echo-tag { font-size: calc(var(--st-echo-fs) - 3px); letter-spacing: .05em; text-transform: uppercase; opacity: .55; }
+.st-echo-m-alt { color: var(--st-echo-g); font-weight: 700; }
+.st-echo-m-rx { padding: 0 4px; border-radius: 5px; background: rgba(0,0,0,.25); color: #ecdcb4; font: 600 calc(var(--st-echo-fs) - 2.5px)/1.4 var(--st-echo-mono); }
+.st-echo-m-seen { color: var(--st-echo-a); font-size: calc(var(--st-echo-fs) - 2px); white-space: nowrap; }
+.st-echo-m-glob { padding: 0 4px; border-radius: 5px; border: 1px solid rgba(var(--st-echo-i), .28); font-size: calc(var(--st-echo-fs) - 3px); line-height: 1.4; opacity: .8; white-space: nowrap; }
+.st-echo-brows { display: flex; flex-direction: column; padding: 2px 0 8px; }
+.st-echo-brow { display: flex; align-items: center; gap: 4px; min-height: 40px; border-top: 1px solid rgba(var(--st-echo-i), .06); border-radius: 10px; }
+.st-echo-brow:first-child { border-top: 0; }
+.st-echo-brow.st-echo-sel { background: rgba(var(--st-echo-i), .08); }
+.st-echo-brow-t { flex: 1; min-height: 40px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; padding: 4px 4px 4px 6px; text-align: left; }
+.st-echo-brow .st-echo-bx { width: 36px; height: 36px; border-radius: 10px; }
+.st-echo-off .st-echo-bchips, .st-echo-off .st-echo-brows { opacity: .55; }
+
+/* Ban editor: the alternative first, then the folded regex sub-row. */
+.st-echo-bed { margin: 0 0 10px; padding: 10px 10px 4px; border-radius: 14px; border: 1px solid rgba(var(--st-echo-i), .16); background: rgba(var(--st-echo-i), .04); animation: st-echo-fade 120ms ease-out; }
+.st-echo-brows .st-echo-bed { margin: 4px 0 8px; }
+.st-echo-bed-t { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 6px; font-weight: 600; }
+.st-echo-k { font-size: calc(var(--st-echo-fs) - 3px); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .55; }
+.st-echo-seen-long { margin-bottom: 6px; color: var(--st-echo-a); font-size: calc(var(--st-echo-fs) - 1px); }
+.st-echo-bed-l { display: block; margin: 2px 0 6px; font-size: calc(var(--st-echo-fs) - 1px); opacity: .75; }
+.st-echo-sgs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.st-echo-sg {
+  min-height: var(--st-echo-ch); padding: 4px var(--st-echo-chip-pad, 10px); border-radius: 999px; border: 1px dashed rgba(147,220,165,.5);
+  background: rgba(147,220,165,.07); font-size: calc(var(--st-echo-chip-fs) - .5px); text-align: left;
+}
+.st-echo-saved { margin-top: 8px; color: var(--st-echo-g); font-size: calc(var(--st-echo-fs) - .5px); }
+.st-echo-rx-box { margin-top: 10px; border-top: 1px solid rgba(var(--st-echo-i), .08); }
+.st-echo-rx-state { padding: 1px 7px; border-radius: 999px; border: 1px solid rgba(var(--st-echo-i), .2); font-size: calc(var(--st-echo-fs) - 2.5px); }
+.st-echo-rx-state.st-echo-on { color: rgb(var(--st-echo-acc-ink)); background: var(--st-echo-acc); border-color: transparent; }
+.st-echo-rx-b { display: flex; flex-direction: column; gap: 8px; padding: 0 0 10px; animation: st-echo-fade 120ms ease-out; }
+.st-echo-rx { display: block; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.3); color: #ecdcb4; font: calc(var(--st-echo-fs) - 1px)/1.5 var(--st-echo-mono); overflow-wrap: anywhere; word-break: break-all; }
+.st-echo-drawer[data-st-echo-tone="light"] .st-echo-rx, .st-echo-drawer[data-st-echo-tone="light"] .st-echo-m-rx { color: #6b4e00; background: rgba(0,0,0,.06); }
+.st-echo-rx-row { display: flex; align-items: center; gap: 10px; }
+.st-echo-rx-l { flex: none; min-width: 7.5em; font-size: calc(var(--st-echo-fs) - 1px); opacity: .75; }
+.st-echo-rx-b > .st-echo-tog { align-self: flex-start; }
+.st-echo-rx-note { margin: 10px 0 8px; }
+
+/* Block preview: language switch and token estimate live inside the opened block. */
+.st-echo-block-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 8px; }
+.st-echo-tok { font-size: calc(var(--st-echo-fs) - 1.5px); opacity: .55; }
+.st-echo-block {
+  padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.3); border: 1px solid rgba(var(--st-echo-i), .08);
+  font: calc(var(--st-echo-fs) - 1px)/1.55 var(--st-echo-mono); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.st-echo-drawer[data-st-echo-tone="light"] .st-echo-block { background: rgba(0,0,0,.05); }
+.st-echo-off .st-echo-block { opacity: .55; }
+.st-echo-seg { display: flex; gap: 4px; padding: 3px; border-radius: 12px; background: rgba(var(--st-echo-i), .06); }
+.st-echo-seg > button { flex: 1; min-height: 36px; border-radius: 9px; font-size: calc(var(--st-echo-fs) - 1px); text-align: center; }
+.st-echo-seg > button[aria-pressed="true"] { color: rgb(var(--st-echo-acc-ink)); background: var(--st-echo-acc); font-weight: 600; }
+.st-echo-seg.st-echo-tiny { flex: none; gap: 2px; padding: 2px; }
+.st-echo-seg.st-echo-tiny > button { flex: none; min-width: 44px; font-size: calc(var(--st-echo-fs) - 2.5px); font-weight: 600; letter-spacing: .04em; }
+
+.st-echo-foot { margin-top: auto; padding: 6px 0 2px; text-align: center; font-size: calc(var(--st-echo-fs) - 2.5px); opacity: .42; }
+
+/* Undo toast: bottom centre of the panel (the panel has an explicit height, so absolute works under the html
+   transform), at least 44px tall with 36px buttons. */
+.st-echo-toast {
+  position: absolute; z-index: 9; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); translate: -50% 0;
+  width: max-content; max-width: calc(100% - 24px); min-height: 44px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px;
+  padding: 4px 6px 4px 16px; border-radius: 14px; color: inherit; border: 1px solid rgba(var(--st-echo-i), .2);
+  background: linear-gradient(rgba(var(--st-echo-i), .06), rgba(var(--st-echo-i), .06)), rgb(var(--st-echo-base-rgb, 24,24,30));
+  box-shadow: 0 10px 28px rgba(0,0,0,.5); animation: st-echo-up 160ms ease-out;
+}
+.st-echo-toast-t { font-weight: 600; }
+.st-echo-toast .st-echo-sep { opacity: .4; }
+.st-echo-toast-b { min-height: 36px; min-width: 36px; padding: 0 10px; border-radius: 10px; font-weight: 700; color: var(--st-echo-acc); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ⚙ Вид: a bottom sheet on phones (swipe down or «Готово» closes, changes apply at once), a popover from 700px. */
+.st-echo-sheet {
+  position: absolute; z-index: 8; left: 0; right: 0; bottom: 0; max-height: calc(100% - 40px);
+  display: flex; flex-direction: column; border-radius: 20px 20px 0 0; border-top: 1px solid rgba(var(--st-echo-i), .16);
+  background: linear-gradient(rgba(var(--st-echo-i), .04), rgba(var(--st-echo-i), .04)), rgb(var(--st-echo-base-rgb, 20,20,26));
+  box-shadow: 0 -14px 36px rgba(0,0,0,.5); animation: st-echo-up 180ms ease-out;
+}
+.st-echo-sheet-h { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 16px 4px; touch-action: none; cursor: grab; }
+.st-echo-sheet-h > b { align-self: flex-start; font-size: calc(var(--st-echo-fs) + 2px); }
+.st-echo-grip { width: 40px; height: 4px; border-radius: 999px; background: rgba(var(--st-echo-i), .3); }
+.st-echo-sheet-b { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 6px 16px 10px; }
+.st-echo-sheet-l { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: calc(var(--st-echo-fs) - 1px); font-weight: 600; opacity: .8; }
+.st-echo-out { font-weight: 400; opacity: .7; font-variant-numeric: tabular-nums; }
+/* Sliders (SPEC §19.1): label left, value right, then a 28px box with a themed 4px track and an 18px knob (divs,
+   placed through --st-echo-fill on the box) and the real range input stretched invisibly over them, so a host
+   theme cannot inflate it while keyboard, touch and screen readers still drive the native control. The track is
+   inset by half a knob so the knob and the (invisible) native thumb travel the same path. A one-line hint under
+   the size sliders (SPEC §19.2). */
+.st-echo-slider > .st-echo-sheet-l { margin-top: 2px; }
+.st-echo-sl-box { position: relative; height: 28px; margin: 0; }
+.st-echo-sl-track { position: absolute; left: 9px; right: 9px; top: 12px; height: 4px; border-radius: 999px; background: rgba(var(--st-echo-i), .16); pointer-events: none; }
+.st-echo-sl-track::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--st-echo-fill, 0%); border-radius: 999px; background: var(--st-echo-acc); }
+.st-echo-sl-knob {
+  position: absolute; top: 50%; left: var(--st-echo-fill, 0%); width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+  background: var(--st-echo-acc); border: 2px solid rgba(var(--st-echo-base-rgb, 20,20,26), .9); box-shadow: 0 2px 8px rgba(0,0,0,.45);
+}
+.st-echo-drawer .st-echo-sl-box > input.st-echo-range {
+  position: absolute; inset: 0; display: block; width: 100%; height: 28px; min-height: 0; margin: 0; padding: 0; opacity: 0;
+  -webkit-appearance: none; appearance: none; border: 0; box-shadow: none; background: transparent; cursor: pointer; touch-action: pan-y;
+}
+.st-echo-drawer .st-echo-sl-box > input.st-echo-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; }
+.st-echo-drawer .st-echo-sl-box > input.st-echo-range::-moz-range-thumb { width: 18px; height: 18px; border: 0; }
+.st-echo-sl-box:has(input:focus-visible) .st-echo-sl-knob { outline: 2px solid var(--st-echo-acc); outline-offset: 2px; }
+.st-echo-sl-hint { margin: -2px 0 0; font-size: 12px; line-height: 1.3; opacity: .55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-echo-switches { display: flex; flex-direction: column; margin-top: 4px; border-top: 1px solid rgba(var(--st-echo-i), .08); }
+.st-echo-switch {
+  width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  font-size: calc(var(--st-echo-fs) - 1px); font-weight: 600;
+}
+.st-echo-switch + .st-echo-switch { border-top: 1px solid rgba(var(--st-echo-i), .06); }
+.st-echo-switch-l { opacity: .85; }
+.st-echo-knob { position: relative; flex: none; width: 44px; height: 26px; border-radius: 999px; background: rgba(var(--st-echo-i), .18); transition: background-color 120ms; }
+.st-echo-knob::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: rgb(var(--st-echo-i)); transition: transform 140ms ease-out;
+}
+.st-echo-switch[aria-checked="true"] .st-echo-knob { background: var(--st-echo-acc); }
+.st-echo-switch[aria-checked="true"] .st-echo-knob::after { transform: translateX(18px); background: rgb(var(--st-echo-acc-ink)); }
+.st-echo-sheet .st-echo-wide-only { display: none; }
+.st-echo-sheet-b > .st-echo-wide { margin-top: 4px; }
+.st-echo-sheet-f { flex: none; padding: 8px 16px max(14px, env(safe-area-inset-bottom)); border-top: 1px solid rgba(var(--st-echo-i), .08); }
+@media (min-width: 700px) {
+  .st-echo-sheet {
+    top: 78px; right: 10px; left: auto; bottom: auto; width: min(380px, calc(100% - 20px)); max-height: calc(100% - 90px);
+    border-radius: 16px; border: 1px solid rgba(var(--st-echo-i), .16); box-shadow: 0 14px 36px rgba(0,0,0,.55); animation: st-echo-fade 120ms ease-out;
+  }
+  .st-echo-sheet-h { align-items: stretch; padding-top: 12px; cursor: default; touch-action: auto; }
+  .st-echo-grip { display: none; }
+  .st-echo-sheet .st-echo-wide-only { display: block; }
+  .st-echo-sheet-f { padding-bottom: 12px; }
+}
+
+/* Edge pull tab: 22×72 glass on the right edge, below Sable Trackers' tab (which is centred at 50dvh). A
+   transparent ::before widens the hit area to 36px. Open, it sits on the panel's left edge; a full-width phone
+   panel hides it then, because nothing is left of the panel and the header has ✕. */
+.st-echo-tab {
+  position: fixed; z-index: 9511; top: calc(50vh + 84px); top: calc(50dvh + 84px); right: 0; left: auto; bottom: auto;
+  width: 22px; min-width: 22px; height: 72px; min-height: 72px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  transform: translateY(-50%); color: var(--st-echo-text, var(--SmartThemeBodyColor, #eeeae7));
+  background: rgba(var(--st-echo-base-rgb, 24,24,30), .7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--st-echo-i), .22); border-right: 0; border-radius: 12px 0 0 12px; box-shadow: -4px 0 14px rgba(0,0,0,.3);
+}
+.st-echo-tab::before { content: ''; position: absolute; top: -4px; bottom: -4px; left: -14px; right: 0; }
+.st-echo-tab .st-echo-ico { width: 14px; height: 14px; }
+.st-echo-tab > [data-icon="chevron"] { display: none; }
+.st-echo-tab[aria-expanded="true"] { right: var(--st-echo-panel-w); background: rgba(var(--st-echo-base-rgb, 14,14,18), var(--st-echo-opacity, .93)); }
+.st-echo-tab[aria-expanded="true"] > [data-icon="logo"] { display: none; }
+.st-echo-tab[aria-expanded="true"] > [data-icon="chevron"] { display: inline-flex; }
+@media (max-width: 699.98px) { .st-echo-tab[aria-expanded="true"][data-st-echo-phone="full"] { display: none; } }
+@media (hover: hover) { .st-echo-tab:hover { background: rgba(var(--st-echo-base-rgb, 34,34,42), .8); } }
+.st-echo-menu-entry { min-height: 36px; cursor: pointer; }
+.st-echo-menu-entry .st-echo-ico { width: 16px; height: 16px; }
+
+/* Chips under 36px: they look smaller, but every chip keeps a 36px tap area through an invisible extension;
+   the gaps grow so neighbouring areas do not overlap. */
+.st-echo-drawer[data-st-echo-chip="compact"] :is(.st-echo-words, .st-echo-bchips, .st-echo-sgs) { gap: 8px; }
+.st-echo-drawer[data-st-echo-chip="compact"] :is(.st-echo-w, .st-echo-bt, .st-echo-bx, .st-echo-sg) { position: relative; }
+.st-echo-drawer[data-st-echo-chip="compact"] :is(.st-echo-w, .st-echo-bt, .st-echo-bx, .st-echo-sg)::after { content: ''; position: absolute; inset: -4px; }
+.st-echo-drawer[data-st-echo-chip="compact"] .st-echo-bt::after { inset: -4px 0; }
+
+/* Light base: coloured text darkens to keep contrast. */
+.st-echo-drawer[data-st-echo-tone="light"], .st-echo-tab[data-st-echo-tone="light"] { --st-echo-g: #2c7a45; --st-echo-a: #8a6100; --st-echo-r: #b23b3b; }
+.st-echo-drawer[data-st-echo-tone="light"] .st-echo-btn.st-echo-ban { color: #9b2c2c; background: rgba(210,80,80,.1); border-color: rgba(178,59,59,.45); }
+.st-echo-drawer[data-st-echo-tone="light"] .st-echo-exs mark { background: rgba(201,150,40,.25); }
+.st-echo-drawer[data-st-echo-tone="light"] .st-echo-sg { border-color: rgba(44,122,69,.5); background: rgba(44,122,69,.07); }
+
+/* Compact spacing: tighter cards and rows; tap targets keep 36px. */
+.st-echo-drawer[data-st-echo-spacing="compact"] .st-echo-scroll { gap: 6px; }
+.st-echo-drawer[data-st-echo-spacing="compact"] .st-echo-card-b { padding: 4px 10px 6px 14px; }
+.st-echo-drawer[data-st-echo-spacing="compact"] :is(.st-echo-cand, .st-echo-pat) { padding: 6px 0 8px; }
+.st-echo-drawer[data-st-echo-spacing="compact"] .st-echo-acts { margin-top: 4px; }
+
+/* Motion: visual.motion = false (data-st-echo-motion="off") and the system reduced-motion setting turn every
+   animation and transition off. */
+.st-echo-drawer[data-st-echo-motion="off"], .st-echo-drawer[data-st-echo-motion="off"] *,
+.st-echo-drawer[data-st-echo-motion="off"] *::before, .st-echo-drawer[data-st-echo-motion="off"] *::after,
+.st-echo-tab[data-st-echo-motion="off"] { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .st-echo-drawer, .st-echo-drawer *, .st-echo-drawer *::before, .st-echo-drawer *::after, .st-echo-tab { animation: none !important; transition: none !important; }
+}
+@media (max-width: 379px) { .st-echo-card-b { padding-inline: 12px 10px; } .st-echo-sens { padding-inline: 8px 6px; } }
+
+/* Background picture (SPEC §17.2, visual.bgImage): a layer inside the panel, which is its containing block (fixed,
+   with an explicit height, so the html transform does not matter). z-index -1 keeps it above the panel fill and
+   under the content; it does not scroll. The dim is a wash of the base colour over the picture in the same layer.
+   Over a busy picture everything that sits on the panel itself gets a base-coloured backing, so its text stays
+   readable (a text-shadow halo is no option: SillyTavern's «no text shadows» removes every text-shadow). */
+.st-echo-drawer[data-st-echo-bg="1"]::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; border-radius: inherit; pointer-events: none;
+  background-image: linear-gradient(rgba(var(--st-echo-base-rgb, 14,14,18), var(--st-echo-bg-dim, .45)), rgba(var(--st-echo-base-rgb, 14,14,18), var(--st-echo-bg-dim, .45))), var(--st-echo-bg-image, none);
+  background-position: center; background-repeat: no-repeat; background-size: 100% 100%, cover;
+}
+.st-echo-drawer[data-st-echo-fit="contain"]::before { background-size: 100% 100%, contain; }
+.st-echo-drawer[data-st-echo-fit="tile"]::before { background-size: 100% 100%, auto; background-repeat: no-repeat, repeat; background-position: center, left top; }
+.st-echo-drawer[data-st-echo-bg="1"] .st-echo-hd { background: rgba(var(--st-echo-base-rgb, 14,14,18), .66); border-bottom-color: transparent; }
+.st-echo-drawer[data-st-echo-bg="1"] .st-echo-status { opacity: .75; }
+.st-echo-drawer[data-st-echo-bg="1"] .st-echo-card {
+  background: linear-gradient(180deg, rgba(var(--st-echo-i), .09), rgba(var(--st-echo-i), .06)), rgba(var(--st-echo-base-rgb, 14,14,18), .72);
+}
+.st-echo-drawer[data-st-echo-bg="1"] :is(.st-echo-sens, .st-echo-notice) { background: linear-gradient(rgba(var(--st-echo-i), .06), rgba(var(--st-echo-i), .06)), rgba(var(--st-echo-base-rgb, 14,14,18), .72); }
+.st-echo-drawer[data-st-echo-bg="1"] .st-echo-sens[aria-expanded="true"] { background: linear-gradient(rgba(var(--st-echo-i), .14), rgba(var(--st-echo-i), .14)), rgba(var(--st-echo-base-rgb, 14,14,18), .78); }
+.st-echo-drawer[data-st-echo-bg="1"] .st-echo-scroll > :is(.st-echo-hint, .st-echo-foot) { padding-inline: 10px 2px; border-radius: 12px; background: rgba(var(--st-echo-base-rgb, 14,14,18), .66); }
+.st-echo-drawer[data-st-echo-bg="1"] .st-echo-foot { align-self: center; padding: 3px 10px; opacity: .7; }
+
+/* Settings block in SillyTavern's extensions tab (SPEC §17.1): the structure and sizes of the Sable Trackers block.
+   The controls carry SillyTavern's own classes (checkbox_label, text_pole, menu_button), so the theme styles them;
+   these rules only size and place them. Rows: label left, control right. The layout follows the block's own width,
+   not the viewport: two cells per line in a wide column, one in a narrow column and on phones. */
+.st-echo-settings { container-type: inline-size; min-width: 0; color: var(--SmartThemeBodyColor, #eeeae7); }
+.st-echo-settings, .st-echo-settings * { box-sizing: border-box; }
+.st-echo-settings [hidden] { display: none !important; }
+.st-echo-settings .inline-drawer-header { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: inherit; background-color: transparent; font: inherit; text-align: left; cursor: pointer; }
+.st-echo-settings-body { padding: 2px 2px 8px; font-size: 13px; line-height: 1.35; }
+.st-echo-settings-group { min-width: 0; margin: 0; padding: 10px 0 8px; border-top: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,.12)); }
+.st-echo-settings-group[data-group="main"] { padding-top: 4px; border-top: 0; }
+.st-echo-settings-heading { margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; line-height: 1.3; text-transform: uppercase; opacity: .6; }
+.st-echo-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 2px 18px; }
+.st-echo-settings-grid > :is(.st-echo-settings-wide, .st-echo-settings-hint, .st-echo-settings-buttons) { grid-column: 1 / -1; }
+.st-echo-settings-cells { display: contents; }
+.st-echo-settings :is(select, input:not([type="checkbox"]):not([type="range"]):not([type="color"]), button, summary, .checkbox_label) { min-height: 36px; }
+/* Theme checkboxes keep their own size; stretching them made tall ovals and circles on some themes. */
+.st-echo-settings input[type="checkbox"] { min-height: 0; flex: none; align-self: center; margin: 0; }
+.st-echo-settings .text_pole { min-width: 0; margin: 0; font-size: 13px; }
+.st-echo-settings .checkbox_label { display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; }
+.st-echo-settings-label { min-width: 0; line-height: 1.2; overflow-wrap: break-word; }
+.st-echo-settings-check > .st-echo-settings-label { display: flex; flex-direction: column; gap: 1px; padding-block: 3px; }
+.st-echo-settings-check small { font-size: 12px; line-height: 1.3; opacity: .6; }
+.st-echo-settings-hint { margin: 2px 0 4px; font-size: 12px; line-height: 1.35; opacity: .6; }
+.st-echo-settings-hint + .st-echo-settings-hint { margin-top: -2px; }
+.st-echo-settings-hint:empty { display: none; }
+.st-echo-settings-row { display: grid; grid-template-columns: minmax(0, 1fr) 45%; align-items: center; gap: 4px 10px; margin: 0; padding-block: 6px; }
+.st-echo-settings-row.st-echo-settings-text { grid-template-columns: minmax(0, 1fr) 55%; }
+.st-echo-settings-row > .text_pole { width: 100%; }
+.st-echo-settings select.text_pole { text-overflow: ellipsis; }
+.st-echo-settings-stack { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
+.st-echo-settings textarea.text_pole { width: 100%; min-height: 9em; resize: vertical; font: 12px/1.4 monospace; }
+
+/* Sliders (SPEC §19.1): label and value on one line, then a 28px box with a themed 4px track and an 18px knob
+   (divs placed through --st-echo-fill on the box) under an invisible, full-size range input. SillyTavern and its
+   themes paint range inputs as tall bars of their own; at opacity 0 nothing they do shows, while keyboard, touch
+   and screen readers keep the native control. A one-line hint under the size sliders (SPEC §19.2). */
+.st-echo-settings-range { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 8px; margin: 0; padding-top: 4px; }
+.st-echo-settings-range > :is(.st-echo-settings-slider, .st-echo-settings-hint) { grid-column: 1 / -1; }
+.st-echo-settings-range > .st-echo-settings-hint { margin-top: -2px; }
+.st-echo-settings-value { font-size: 12px; font-variant-numeric: tabular-nums; opacity: .7; }
+.st-echo-settings-slider {
+  position: relative; height: 28px; margin: 0;
+  --st-echo-knob: var(--SmartThemeQuoteColor, currentColor);
+  --st-echo-track: rgba(128,128,128,.35);
+}
+.st-echo-settings-track { position: absolute; left: 9px; right: 9px; top: 12px; height: 4px; border-radius: 999px; background: var(--st-echo-track); pointer-events: none; }
+.st-echo-settings-track::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--st-echo-fill, 0%); border-radius: 999px; background: var(--st-echo-knob); }
+.st-echo-settings-knob {
+  position: absolute; top: 50%; left: var(--st-echo-fill, 0%); width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+  background: var(--st-echo-knob); border: 2px solid var(--SmartThemeBlurTintColor, #19181f); box-shadow: 0 1px 4px rgba(0,0,0,.45);
+}
+.st-echo-settings .st-echo-settings-slider > input.st-echo-range-compact {
+  position: absolute; inset: 0; display: block; width: 100%; height: 28px; min-height: 0; margin: 0; padding: 0; opacity: 0;
+  -webkit-appearance: none; appearance: none; border: 0; border-radius: 0; background: transparent; box-shadow: none; filter: none; cursor: pointer; touch-action: pan-y;
+}
+.st-echo-settings .st-echo-range-compact::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; }
+.st-echo-settings .st-echo-range-compact::-moz-range-thumb { width: 18px; height: 18px; border: 0; }
+.st-echo-settings .st-echo-range-compact:disabled { cursor: default; }
+.st-echo-settings-slider:has(input:disabled) { opacity: .4; }
+.st-echo-settings-slider:has(input:focus-visible) .st-echo-settings-knob { outline: 2px solid var(--SmartThemeQuoteColor, currentColor); outline-offset: 2px; }
+/* «Ширина панели» is a desktop control (SPEC §19.2): phones size the panel on their own (§19.3). */
+@media (max-width: 699.98px) { .st-echo-settings-range[data-wide] { display: none; } }
+
+/* Colours: the swatch fills the control half of the row, «авто» sits after it; an automatic colour shows its
+   stand-in swatch dimmed. */
+.st-echo-settings-pair { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.st-echo-settings-pair > input[type="color"] {
+  flex: 1 1 auto; min-width: 0; width: 48px; height: 36px; margin: 0; padding: 0 2px; cursor: pointer;
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,.2)); border-radius: 8px; background: transparent;
+}
+.st-echo-settings .menu_button.st-echo-settings-auto { flex: none; padding: 2px 10px; font-size: 12px; }
+.st-echo-settings-auto[aria-pressed="true"] { box-shadow: inset 0 0 0 1px currentColor; }
+.st-echo-settings-auto[aria-pressed="false"] { opacity: .7; }
+.st-echo-settings-color:has(.st-echo-settings-auto[aria-pressed="true"]) input[type="color"] { opacity: .45; }
+
+/* Buttons wrap as a row instead of full-width bars. */
+.st-echo-settings-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0; }
+.st-echo-settings .menu_button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; margin: 0; padding: 4px 12px; white-space: normal; font-size: 13px; }
+.st-echo-settings .menu_button:disabled { cursor: default; opacity: .45; }
+.st-echo-settings-result { font-size: 12px; opacity: .8; }
+.st-echo-settings-notice:empty { display: none; }
+
+/* Background picture: thumbnail + buttons, the link, dim and fit (SPEC §17.2). */
+.st-echo-settings-bgblock { padding-top: 6px; }
+.st-echo-settings-caption { display: block; margin-bottom: 4px; }
+.st-echo-settings-bg { display: flex; align-items: center; gap: 10px; margin: 0 0 2px; }
+.st-echo-settings-bg > .st-echo-settings-buttons { flex: 1 1 auto; margin: 0; }
+.st-echo-settings-thumb {
+  flex: none; display: flex; align-items: center; justify-content: center; width: 76px; height: 50px; overflow: hidden;
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,.2)); border-radius: 8px;
+  background-color: rgba(0,0,0,.2); background-position: center; background-repeat: no-repeat; background-size: cover;
+  font-size: 11px; line-height: 1.2; text-align: center;
+}
+.st-echo-settings-thumb[data-empty] { border-style: dashed; background-color: transparent; opacity: .6; }
+.st-echo-settings input[type="file"] { display: none; }
+
+/* Danger zone: folded, a red edge; dumps and the template take the full width. */
+.st-echo-settings-danger { border-left: 2px solid rgba(224,86,75,.6); padding-left: 10px; }
+.st-echo-settings summary { padding-block: 8px; cursor: pointer; overflow-wrap: anywhere; }
+.st-echo-settings-danger > summary > .st-echo-settings-heading { display: inline; margin: 0; opacity: .85; }
+.st-echo-settings-sub { margin: 10px 0 4px; font-size: 12px; font-weight: 600; opacity: .8; }
+.st-echo-settings-dump { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40vh; overflow: auto; margin: 4px 0; font: 12px/1.4 monospace; }
+.st-echo-settings-log > summary { font-size: 12px; }
+.st-echo-settings :focus-visible { outline: 2px solid var(--SmartThemeQuoteColor, currentColor); outline-offset: 2px; }
+@container (max-width: 480px) {
+  .st-echo-settings-grid { grid-template-columns: minmax(0, 1fr); }
+  .st-echo-settings-danger { padding-left: 6px; }
+}
+
+/* The regex-list note (SPEC 19.4) may wrap: it is a short-lived status line, not a hint. */
+.st-echo-drawer .st-echo-note.st-echo-rx-saved { white-space: normal; overflow: visible; text-overflow: clip; }
+
+/* SPEC 18: explicit sizing wins over host element and theme control rules. */
+.st-echo-settings { --st-echo-fs: 13px; }
+.st-echo-drawer button.st-echo-control, .st-echo-drawer input.st-echo-control, .st-echo-drawer select.st-echo-control,
+.st-echo-sheet button.st-echo-control, .st-echo-sheet input.st-echo-control, .st-echo-sheet select.st-echo-control,
+.st-echo-settings button.st-echo-control, .st-echo-settings input.st-echo-control, .st-echo-settings select.st-echo-control {
+  box-sizing: border-box; height: 36px; min-height: 0; padding: 0 10px; font-size: var(--st-echo-fs); line-height: 1.2;
+}
+.st-echo-drawer .st-echo-scroll, .st-echo-sheet .st-echo-sheet-b { zoom: var(--st-echo-scale); }
+.st-echo-drawer button.st-echo-w {
+  height: var(--st-echo-ch); padding: 0 var(--st-echo-chip-pad, 10px); font-size: calc(var(--st-echo-chip-fs) + .5px);
+}
+.st-echo-drawer button.st-echo-ib, .st-echo-drawer button.st-echo-scissors { width: 36px; flex: none; padding: 0; }
+.st-echo-drawer button.st-echo-scissors { font-size: 20px; opacity: .55; }
+.st-echo-drawer button.st-echo-card-t { font-size: 15px; }
+.st-echo-drawer .st-echo-note, .st-echo-drawer .st-echo-caption, .st-echo-drawer .st-echo-hint {
+  font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.st-echo-hint > span { overflow: hidden; text-overflow: ellipsis; }
+/* The themed sliders (SPEC 19.1) and native theme checkboxes keep their own sizes. */
+.st-echo-settings .st-echo-settings-slider > input.st-echo-range-compact, .st-echo-drawer .st-echo-sl-box > input.st-echo-range { height: 28px; padding: 0; }
+.st-echo-settings input[type="checkbox"].st-echo-control { width: 15px; height: 15px; padding: 0; }
+.st-echo-settings .st-echo-settings-check small { font-size: 12px; }

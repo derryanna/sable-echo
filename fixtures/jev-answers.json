@@ -1,0 +1,30 @@
+{
+  "answers": {
+    "repeats": {
+      "score": 2.5,
+      "confidence": 0.9
+    },
+    "speaks": {
+      "score": 0.5
+    },
+    "change": {
+      "score": 2
+    },
+    "aphorism": {
+      "noul": 0.8
+    },
+    "antithesis": {
+      "noul": 0.7
+    },
+    "filter": {
+      "noul": 0.2
+    },
+    "negation": {
+      "noul": 0.6
+    }
+  },
+  "usage": {
+    "prompt_tokens": 420,
+    "output_tokens": 36
+  }
+}

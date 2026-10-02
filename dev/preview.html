@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Sable Echo preview</title>
+<link rel="stylesheet" href="./st-theme.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Like SillyTavern: a transform on <html> makes it the containing block of fixed boxes, so the drawer has to
+   size itself with viewport units. height:0 reproduces the worst case. */
+html { transform: translateZ(0); height: 0; }
+body { margin: 0; min-height: 100vh; color: #eeeae7; font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  background: #0e0c12 linear-gradient(160deg, #30243c 0%, #16121b 55%, #221a16 100%) fixed; }
+#chat { padding: 18px; opacity: .55; font-size: 17px; }
+</style>
+</head>
+<body>
+<div id="extensionsMenu" hidden></div>
+<div id="chat">Текст чата за панелью…</div>
+<script type="module">
+// Preview with the fake runtime: ?state=full|nojev|empty (SPEC §13.1 first-run states), ?lang=en, ?closed=1,
+// ?bg=cover|contain|tile (a background picture, SPEC §17.2: a synthetic gradient drawn here, not a photo).
+// Chrome needs --allow-file-access-from-files to open this page from disk (dev/shot.mjs passes it).
+import { mountDrawer } from '../src/ui/drawer.js';
+import { createFakeRuntime, snapshotFor } from '../test/fakes/runtime.mjs';
+
+const query = new URLSearchParams(location.search);
+const fixture = await (await fetch('../fixtures/snapshot.json')).json();
+const snapshot = snapshotFor(fixture, query.get('state') ?? 'full');
+if (query.get('lang') === 'en') snapshot.language = 'en';
+if (query.has('bg')) snapshot.visual = { ...snapshot.visual, bgImage: gradient(), bgDim: 0.45, bgFit: query.get('bg') || 'cover' };
+/** A busy synthetic picture as a PNG data URL: diagonal colour bands and a few light discs. */
+function gradient() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 360; canvas.height = 640;
+  const context = canvas.getContext('2d'), fill = context.createLinearGradient(0, 0, 360, 640);
+  [['#3b1f5c', 0], ['#a0466e', 0.35], ['#e8a15a', 0.6], ['#2d6f73', 1]].forEach(([colour, at]) => fill.addColorStop(at, colour));
+  context.fillStyle = fill; context.fillRect(0, 0, 360, 640);
+  context.fillStyle = 'rgba(255,255,255,.35)';
+  for (const [x, y, r] of [[60, 90, 40], [290, 210, 70], [120, 420, 55], [300, 560, 35]]) { context.beginPath(); context.arc(x, y, r, 0, Math.PI * 2); context.fill(); }
+  return canvas.toDataURL('image/png');
+}
+const runtime = createFakeRuntime(snapshot);
+const ui = mountDrawer(runtime, { document, onSettings: () => console.info('[preview] settings requested') });
+if (!query.has('closed')) ui.open();
+globalThis.echoPreview = { runtime, ui };
+document.title = 'ready';
+</script>
+</body>
+</html>

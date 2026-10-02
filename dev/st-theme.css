@@ -1,0 +1,54 @@
+/* A rough stand-in for the SillyTavern theme rules the settings block relies on (dark default theme), so the
+   dev preview shows the block the way the extensions tab does: square theme checkboxes, the thin bar SillyTavern
+   paints for every range input, text_pole fields, menu_button buttons and the gradient drawer header.
+   Screenshots only; the extension never loads this file. */
+:root {
+  --mainFontSize: 15px;
+  --SmartThemeBodyColor: rgb(220, 220, 210);
+  --SmartThemeQuoteColor: rgb(225, 138, 36);
+  --SmartThemeBorderColor: rgba(0, 0, 0, .5);
+  --SmartThemeBlurTintColor: rgb(23, 23, 23);
+  --SmartThemeCheckboxTickColor: rgb(0, 0, 0);
+}
+body { font-size: var(--mainFontSize); color: var(--SmartThemeBodyColor); }
+input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none; display: grid; place-content: center; flex-shrink: 0;
+  width: var(--mainFontSize); height: var(--mainFontSize); margin: 0; border-radius: 3px; cursor: pointer;
+  border: 1px solid var(--SmartThemeBorderColor); outline: 1px solid rgba(128, 128, 128, .5);
+  background-color: var(--SmartThemeBodyColor);
+}
+input[type="checkbox"]::before {
+  content: ''; width: .6em; height: .6em; transform: scale(0); background: var(--SmartThemeCheckboxTickColor);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+input[type="checkbox"]:checked::before { transform: scale(1); }
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 5px; margin: 0; padding: 0; cursor: ew-resize;
+  background: var(--SmartThemeBodyColor); border-radius: 15px; box-shadow: inset 0 0 2px black; filter: brightness(.75);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%;
+  background: var(--SmartThemeCheckboxTickColor); border: 2px solid var(--SmartThemeBodyColor);
+}
+.text_pole {
+  width: 100%; margin: 5px 0; padding: 3px 5px; border-radius: 5px; font-family: inherit;
+  color: var(--SmartThemeBodyColor); background-color: rgba(0, 0, 0, .3); border: 1px solid var(--SmartThemeBorderColor);
+}
+select.text_pole { padding-right: 20px; }
+.menu_button {
+  display: flex; align-items: center; justify-content: center; width: min-content; margin: 5px 0; padding: 3px 5px; cursor: pointer;
+  color: var(--SmartThemeBodyColor); background-color: var(--SmartThemeBlurTintColor); border: 1px solid var(--SmartThemeBorderColor); border-radius: 5px;
+}
+.checkbox_label { display: flex; flex-direction: row; column-gap: 5px; align-items: baseline; }
+.inline-drawer-header { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; cursor: pointer; }
+#extensions_settings2 .inline-drawer-toggle.inline-drawer-header {
+  margin-bottom: 5px; padding: 2px 5px; border-radius: 10px; border: 1px solid var(--SmartThemeBorderColor);
+  background-image: linear-gradient(348deg, rgba(255,255,255,.3) 2%, rgba(128,128,128,.3) 10%, rgba(0,0,0,.7) 95%, var(--SmartThemeQuoteColor) 100%);
+}
+.inline-drawer-icon { display: block; font-size: calc(var(--mainFontSize) * 1.5); font-style: normal; line-height: 1; filter: brightness(75%); }
+/* Font Awesome is not loaded here: plain glyphs stand in for the chevrons. */
+.fa-circle-chevron-down::before { content: '⌄'; }
+.fa-circle-chevron-up::before { content: '⌃'; }
+
+/* Oversized bare host controls reproduce the phone theme regression (SPEC 18). */
+select, input, button { padding: 24px 16px; font-size: 20px; min-height: 60px; }
